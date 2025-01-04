@@ -1,5 +1,6 @@
-import { Controller, Get } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { AppService } from './app.service';
+import { TestDto } from './testDto';
 
 @Controller()
 export class AppController {
@@ -11,12 +12,12 @@ export class AppController {
   }
 
   @Get('/test')
-  getTest(): string {
-    return this.appService.getTest();
+  getTest(@Query() body: TestDto): string {
+    return this.appService.getTest(body);
   }
 
-  @Get('/test2')
-  getTest2(): string {
+  @Post('/test2')
+  getTest2(@Body() body: TestDto): string {
     return this.appService.getTest2();
   }
 }
