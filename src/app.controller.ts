@@ -1,12 +1,15 @@
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { AppService } from './app.service';
 import { TestDto } from './testDto';
-import { StringifyOptions } from 'querystring';
-import { User } from './db.entity';
+import { UserService } from './user/user.service';
+import { CreateUserDto } from './user/dto/create-user.dto';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor(
+    private readonly appService: AppService,
+    private readonly userService: UserService,
+  ) {}
 
   @Get()
   getHello(): string {
@@ -23,8 +26,8 @@ export class AppController {
     return this.appService.getTest2();
   }
 
-  @Post('/db')
-  async dbInsert(@Body() body: any): Promise<string> {
-    return await this.appService.dbInsert(body);
+  @Post('/user/register')
+  async dbInsert(@Body() body: CreateUserDto): Promise<string> {
+    return await this.userService.dbInsert(body);
   }
 }

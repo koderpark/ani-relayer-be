@@ -2,16 +2,28 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { SocketModule } from './socket/socket.module';
-import { databaseProviders } from './db.providers';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from './db.entity';
-import { userProviders } from './user.providers';
 import { UserModule } from './user/user.module';
+import { User } from './user/entities/user.entity';
 
 @Module({
-  imports: [ConfigModule.forRoot(), SocketModule, UserModule],
+  imports: [
+    ConfigModule.forRoot(),
+    TypeOrmModule.forRoot({
+      type: 'mysql',
+      host: 'localhost',
+      port: 3307,
+      username: process.env.DB,
+      password: process.env.DBPW,
+      database: 'test',
+      entities: [User],
+      synchronize: true,
+    }),
+    SocketModule,
+    UserModule,
+  ],
   controllers: [AppController],
-  providers: [AppService, ...databaseProviders, ...userProviders],
+  providers: [AppService],
 })
 export class AppModule {}
