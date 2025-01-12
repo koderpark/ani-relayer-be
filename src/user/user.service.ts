@@ -12,10 +12,6 @@ export class UserService {
     private userRepository: Repository<User>,
   ) {}
 
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
-  }
-
   findAll() {
     return `This action returns all user`;
   }
@@ -32,7 +28,7 @@ export class UserService {
     return `This action removes a #${id} user`;
   }
 
-  async dbInsert(data: CreateUserDto): Promise<string> {
+  async create(data: CreateUserDto): Promise<string> {
     const newUser = this.userRepository.create(data); // 엔티티 생성
     const val = await this.userRepository.save(newUser); // 데이터베이스에 저장
     return `${val.email} / ${val.id} / ${val.name} / ${val.password}`;
