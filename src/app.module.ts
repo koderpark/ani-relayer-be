@@ -7,9 +7,10 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './db.entity';
 import { userProviders } from './user.providers';
+import { UserModule } from './user/user.module';
 
 @Module({
-  imports: [ConfigModule.forRoot(), SocketModule],
+  imports: [ConfigModule.forRoot(), SocketModule, UserModule],
   controllers: [AppController],
   providers: [AppService, ...databaseProviders, ...userProviders],
 })
