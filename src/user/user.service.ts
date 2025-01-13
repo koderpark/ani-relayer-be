@@ -25,8 +25,8 @@ export class UserService {
     } else throw new UnauthorizedException();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async findOne(data: LoginUserDto): Promise<User | null> {
+    return await this.userRepository.findOneBy({ email: data.email });
   }
 
   update(id: number, updateUserDto: UpdateUserDto) {
