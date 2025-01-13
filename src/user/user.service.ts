@@ -1,19 +1,28 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
+import { LoginUserDto } from './dto/login-user.dto';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    private jwtService: JwtService,
   ) {}
 
-  findAll() {
-    return `This action returns all user`;
+  async login(data: LoginUserDto): Promise<any> {
+    const find = await this.userRepository.findOneBy({ email: data.email });
+    if (find.password === data.password) {
+      const payload = { sub: find.id, username: find.name };
+      return {
+        access_token: await this.jwtService.signAsync(payload),
+      };
+    } else throw new UnauthorizedException();
   }
 
   findOne(id: number) {
