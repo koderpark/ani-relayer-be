@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import { LoginUserDto } from 'src/user/dto/login-user.dto';
 import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
@@ -17,9 +18,10 @@ export class AuthService {
     email: string;
     id: number;
   }> {
+    // this.logger.log(`${data.email} / ${data.password}`);
     const user = await this.usersService.findOne(data);
-
-    if (user.password === data.password) {
+    const comp = await bcrypt.compare(data.password, user.password);
+    if (user && comp) {
       const { password, ...result } = user;
       return result;
     }
