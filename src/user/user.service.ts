@@ -15,17 +15,29 @@ export class UserService {
     private userRepository: Repository<User>,
   ) {}
 
-  async read(data: UserKeyDto): Promise<UserMaskedDto | null> {
-    return await this.userRepository.findOneBy(data);
-  }
-
-  async create(data: AuthRegisterDto): Promise<string> {
+  async create(data: AuthRegisterDto): Promise<boolean> {
     const user = this.userRepository.create(data); // 엔티티 생성
-
     user.password = await bcrypt.hash(user.password, 10);
 
     const val = await this.userRepository.save(user); // 데이터베이스에 저장
-    return `${val.email} / ${val.id} / ${val.name} / ${val.password}`;
+    return true;
+  }
+
+  async read(data: UserKeyDto): Promise<UserMaskedDto | null> {
+    const user = await this.userRepository.findOneBy(data);
+    if (!user) return null;
+
+    const { password, ...left } = user;
+    return left;
+  }
+
+  async update() {}
+  async remove() {}
+
+  async emailCheck(email: string): Promise<boolean> {
+    const count = await this.userRepository.countBy({ email });
+    if (count == 0) return true;
+    return false;
   }
 
   async attemptLogin(data: AuthLoginDto): Promise<UserKeyDto | null> {

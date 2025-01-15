@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -26,6 +26,9 @@ export class AuthService {
   }
 
   async register(body: AuthRegisterDto) {
+    const chk = await this.userService.emailCheck(body.email);
+    if (!chk)
+      throw new HttpException('already_used_email', HttpStatus.BAD_REQUEST);
     return await this.userService.create(body);
   }
 }
