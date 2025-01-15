@@ -14,6 +14,7 @@ import { CreateUserDto } from './user/dto/create-user.dto';
 import { LoginUserDto } from './user/dto/login-user.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth/auth.service';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller()
 export class AppController {
@@ -28,7 +29,8 @@ export class AppController {
     return this.appService.getHello();
   }
 
-  // @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth('access-token')
+  @UseGuards(AuthGuard('jwt'))
   @Get('profile')
   getProfile(@Req() req) {
     return req.user;
