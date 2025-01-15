@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Logger,
   Param,
   Post,
   Query,
@@ -10,18 +11,16 @@ import {
 } from '@nestjs/common';
 import { AppService } from './app.service';
 import { UserService } from './user/user.service';
-import { CreateUserDto } from './user/dto/create-user.dto';
-import { LoginUserDto } from './user/dto/login-user.dto';
 import { AuthGuard } from '@nestjs/passport';
-import { AuthService } from './auth/auth.service';
 import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller()
 export class AppController {
+  private logger: Logger = new Logger('appController');
+
   constructor(
     private readonly appService: AppService,
     private readonly userService: UserService,
-    private readonly authService: AuthService,
   ) {}
 
   @Get()
@@ -31,24 +30,15 @@ export class AppController {
 
   @ApiBearerAuth('access-token')
   @UseGuards(AuthGuard('jwt'))
-  @Get('profile')
-  getProfile(@Req() req) {
-    return req.user;
+  @Get('/user/primaryKey')
+  getPK(@Req() req) {
+    return req.user.id;
   }
 
-  @UseGuards(AuthGuard('local'))
-  @Post('auth/login')
-  async login(@Req() req, @Body() data: LoginUserDto): Promise<any> {
-    return this.authService.login(req.user);
-  }
-
-  @Get('/user/findOne')
-  async validate(@Query() query: LoginUserDto): Promise<any> {
-    return this.userService.findOne(query);
-  }
-
-  @Post('/user/register')
-  async dbInsert(@Body() body: CreateUserDto): Promise<string> {
-    return await this.userService.create(body);
+  @ApiBearerAuth('access-token')
+  @UseGuards(AuthGuard('jwt'))
+  @Get('/user/read')
+  async validate(@Req() req): Promise<any> {
+    return this.userService.read(req.user);
   }
 }

@@ -2,26 +2,27 @@ import { Strategy } from 'passport-local';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LoginUserDto } from 'src/user/dto/login-user.dto';
+import { UserMaskedDto } from 'src/user/dto/user-masked.dto';
+import { UserService } from 'src/user/user.service';
+import { UserKeyDto } from 'src/user/dto/user-key.dto';
 
 @Injectable()
 export class LocalStrategy extends PassportStrategy(Strategy, 'local') {
   private logger: Logger = new Logger('LocalStrategy');
 
-  constructor(private authService: AuthService) {
+  constructor(
+    private readonly authService: AuthService,
+    private readonly userService: UserService,
+  ) {
     super({
       usernameField: 'email',
     });
   }
 
-  async validate(
-    email: string,
-    password: string,
-  ): Promise<{ id: number; name: string; email: string }> {
-    const user = await this.authService.validateUser({ email, password });
-    if (!user) {
-      throw new UnauthorizedException();
-    }
-    return user;
+  async validate(email: string, password: string): Promise<UserKeyDto> {
+    const userKey = await this.userService.attemptLogin({ email, password });
+
+    if (!userKey) throw new UnauthorizedException();
+    return userKey;
   }
 }
