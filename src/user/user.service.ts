@@ -7,6 +7,8 @@ import { AuthRegisterDto } from 'src/auth/dto/auth-register.dto';
 import { AuthLoginDto } from 'src/auth/dto/auth-login.dto';
 import { UserMaskedDto } from './dto/user-masked.dto';
 import { UserKeyDto } from './dto/user-key.dto';
+import { UserQueryDto } from './dto/user-query.dto';
+import { UserUpdateDto } from './dto/user-update.dto';
 
 @Injectable()
 export class UserService {
@@ -17,9 +19,7 @@ export class UserService {
 
   async create(data: AuthRegisterDto): Promise<boolean> {
     const user = this.userRepository.create(data); // 엔티티 생성
-    user.password = await bcrypt.hash(user.password, 10);
-
-    const val = await this.userRepository.save(user); // 데이터베이스에 저장
+    await this.userRepository.save(user); // 데이터베이스에 저장
     return true;
   }
 
@@ -31,23 +31,18 @@ export class UserService {
     return left;
   }
 
-  async update() {}
-  async remove() {}
-
-  async emailCheck(email: string): Promise<boolean> {
-    const count = await this.userRepository.countBy({ email });
-    if (count == 0) return true;
-    return false;
+  async readWithPW(data: UserQueryDto): Promise<User | null> {
+    return await this.userRepository.findOneBy(data);
   }
 
-  async attemptLogin(data: AuthLoginDto): Promise<UserKeyDto | null> {
-    const user = await this.userRepository.findOneBy({ email: data.email });
-    if (!user) return null;
+  async update(key: UserKeyDto, data: UserUpdateDto) {
+    const res = await this.userRepository.update(key, data);
+    return res.affected ? true : false;
+  }
 
-    const comp = await bcrypt.compare(data.password, user.password);
-    if (comp) {
-      const { id, ...rest } = user;
-      return { id };
-    } else return null;
+  async remove() {}
+
+  async countByEmail(email: string): Promise<number> {
+    return this.userRepository.countBy({ email });
   }
 }
