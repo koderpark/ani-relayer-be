@@ -5,6 +5,7 @@ import { AuthLoginDto } from './dto/auth-login.dto';
 import { AuthRegisterDto } from './dto/auth-register.dto';
 import { AuthChangePWDto } from './dto/auth-change-pw.dto';
 import { ApiBearerAuth } from '@nestjs/swagger';
+import { parseKey } from 'src/utils/parse';
 
 @Controller('/auth')
 export class AuthController {
@@ -13,14 +14,14 @@ export class AuthController {
   @UseGuards(AuthGuard('local'))
   @Post('/login')
   async login(@Req() req, @Body() body: AuthLoginDto): Promise<any> {
-    return this.authService.login(req.user);
+    return this.authService.login(parseKey(req.user), body);
   }
 
   @ApiBearerAuth('access-token')
   @UseGuards(AuthGuard('jwt'))
   @Post('/updatePW')
   async updatePw(@Req() req, @Body() body: AuthChangePWDto): Promise<Boolean> {
-    return this.authService.changePassword(req.user, body);
+    return this.authService.changePassword(parseKey(req.user), body);
   }
 
   @Post('/register')

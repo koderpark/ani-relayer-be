@@ -18,24 +18,25 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async login(key: UserKeyDto) {
-    const payload = { id: key.id };
+  async login(key: UserKeyDto, data: AuthLoginDto) {
+    this.logger.log(key);
+    const payload = { key: key.key, id: data.id };
     return {
       access_token: this.jwtService.sign(payload),
     };
   }
 
-  async register(body: AuthRegisterDto) {
-    const chk = await this.userService.countByEmail(body.email);
+  async register(data: AuthRegisterDto) {
+    const chk = await this.userService.countByEmail({ id: data.id });
     if (chk != 0)
       throw new HttpException('already_used_email', HttpStatus.BAD_REQUEST);
 
-    body.password = await bcrypt.hash(body.password, 10);
-    return await this.userService.create(body);
+    data.password = await bcrypt.hash(data.password, 10);
+    return await this.userService.create(data);
   }
 
   async changePassword(key: UserKeyDto, data: AuthChangePWDto) {
-    const user = await this.userService.readWithPW(key);
+    const user = await this.userService.readWithPW({ key: key.key });
     const comp = await bcrypt.compare(data.oldPassword, user.password);
 
     if (comp) {
@@ -46,13 +47,13 @@ export class AuthService {
   }
 
   async chkPassword(data: AuthLoginDto) {
-    const user = await this.userService.readWithPW({ email: data.email });
+    const user = await this.userService.readWithPW({ id: data.id });
     if (!user) return null;
 
     const comp = await bcrypt.compare(data.password, user.password);
     if (comp) {
-      const { id, ...rest } = user;
-      return { id };
+      const { key, ...rest } = user;
+      return { key };
     } else return null;
   }
 }

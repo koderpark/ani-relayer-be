@@ -3,13 +3,13 @@ import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 
 export class AuthLoginDto {
   @ApiProperty({
-    example: 'test@koder.page',
-    description: "user's email",
+    example: 'koderpark',
+    description: "user's nickname (for login)",
     required: true,
   })
-  @IsEmail()
+  @IsString()
   @IsNotEmpty()
-  email: string;
+  id: string;
 
   @ApiProperty({
     example: 'P@ssw0rd',
@@ -17,5 +17,6 @@ export class AuthLoginDto {
     required: true,
   })
   @IsString()
+  @IsNotEmpty()
   password: string;
 }

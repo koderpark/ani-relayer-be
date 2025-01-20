@@ -1,8 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { Exclude } from 'class-transformer';
+import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { map } from 'rxjs';
 
 export class UserKeyDto {
+  @IsOptional()
+  @IsString()
+  id?: string;
+
+  @IsOptional()
   @IsNumber()
-  @IsNotEmpty()
-  id: number;
+  key?: number;
 }

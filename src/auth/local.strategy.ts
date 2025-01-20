@@ -15,12 +15,12 @@ export class LocalStrategy extends PassportStrategy(Strategy, 'local') {
     private readonly userService: UserService,
   ) {
     super({
-      usernameField: 'email',
+      usernameField: 'id',
     });
   }
 
-  async validate(email: string, password: string): Promise<UserKeyDto> {
-    const userKey = await this.authService.chkPassword({ email, password });
+  async validate(id: string, password: string): Promise<UserKeyDto> {
+    const userKey = await this.authService.chkPassword({ id, password });
 
     if (!userKey) throw new UnauthorizedException();
     return userKey;
