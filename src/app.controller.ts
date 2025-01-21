@@ -1,30 +1,45 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Logger,
+  Param,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { AppService } from './app.service';
-import { TestDto } from './testDto';
-import { StringifyOptions } from 'querystring';
-import { User } from './db.entity';
+import { UserService } from './user/user.service';
+import { AuthGuard } from '@nestjs/passport';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import { parseKey } from './utils/parse';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  private logger: Logger = new Logger('appController');
+
+  constructor(
+    private readonly appService: AppService,
+    private readonly userService: UserService,
+  ) {}
 
   @Get()
   getHello(): string {
     return this.appService.getHello();
   }
 
-  @Get('/test')
-  getTest(@Query() body: TestDto): string {
-    return this.appService.getTest(body);
+  @ApiBearerAuth('access-token')
+  @UseGuards(AuthGuard('jwt'))
+  @Get('/user/rawJwt')
+  getPK(@Req() req) {
+    return req.user;
   }
 
-  @Post('/test2')
-  getTest2(@Body() body: TestDto): string {
-    return this.appService.getTest2();
-  }
-
-  @Post('/db')
-  async dbInsert(@Body() body: any): Promise<string> {
-    return await this.appService.dbInsert(body);
+  @ApiBearerAuth('access-token')
+  @UseGuards(AuthGuard('jwt'))
+  @Get('/user/read')
+  async validate(@Req() req): Promise<any> {
+    return this.userService.read(parseKey(req.user));
   }
 }
