@@ -43,7 +43,9 @@ export class UserService {
 
   async remove() {}
 
-  async countByEmail(key: UserKeyDto): Promise<number> {
-    return this.userRepository.countBy(key);
+  async chkId(id: string): Promise<boolean> {
+    const cnt = await this.userRepository.countBy({ id });
+    if (cnt == 0) return true;
+    return false;
   }
 }

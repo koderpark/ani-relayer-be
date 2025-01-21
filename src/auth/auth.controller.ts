@@ -17,15 +17,15 @@ export class AuthController {
     return this.authService.login(parseKey(req.user), body);
   }
 
+  @Post('/register')
+  async register(@Body() body: AuthRegisterDto): Promise<boolean> {
+    return await this.authService.register(body);
+  }
+
   @ApiBearerAuth('access-token')
   @UseGuards(AuthGuard('jwt'))
   @Post('/updatePW')
   async updatePw(@Req() req, @Body() body: AuthChangePWDto): Promise<Boolean> {
     return this.authService.changePassword(parseKey(req.user), body);
-  }
-
-  @Post('/register')
-  async register(@Body() body: AuthRegisterDto): Promise<boolean> {
-    return await this.authService.register(body);
   }
 }

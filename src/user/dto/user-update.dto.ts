@@ -10,9 +10,5 @@ import {
 export class UserUpdateDto {
   @IsOptional()
   @IsString()
-  id?: string;
-
-  @IsOptional()
-  @IsString()
   password?: string;
 }
