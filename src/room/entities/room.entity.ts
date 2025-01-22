@@ -12,15 +12,18 @@ export class Room {
   @Column() // random-generate digit code to login.
   code: number;
 
-  @Column()
-  cntViewer: number = 0;
+  @Column({ default: 1 })
+  cntViewer: number;
 
   @Column()
-  vidName?: string;
+  roomName: string;
 
-  @Column()
-  vidUrl?: string;
+  @Column({ default: '' })
+  vidName: string;
 
-  @Column()
-  vidEpisode?: number;
+  @Column({ default: '' })
+  vidUrl: string;
+
+  @Column({ default: -1 })
+  vidEpisode: number;
 }

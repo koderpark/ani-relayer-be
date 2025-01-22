@@ -6,18 +6,26 @@ import {
   Patch,
   Param,
   Delete,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import { RoomService } from './room.service';
-import { RoomCreateDto } from './dto/room-create.dto';
 import { RoomUpdateDto } from './dto/room-update.dto';
+import { parseKey } from 'src/utils/parse';
+import { RoomQueryDto } from './dto/room-query.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import { RoomCreateDto } from './dto/room-create.dto';
 
 @Controller('room')
 export class RoomController {
   constructor(private readonly roomService: RoomService) {}
 
+  @ApiBearerAuth('access-token')
+  @UseGuards(AuthGuard('jwt'))
   @Post()
-  create(@Body() createRoomDto: RoomCreateDto) {
-    return this.roomService.create(createRoomDto);
+  async create(@Req() req, @Body() body: RoomCreateDto): Promise<RoomQueryDto> {
+    return this.roomService.create(parseKey(req.user), body);
   }
 
   @Get()

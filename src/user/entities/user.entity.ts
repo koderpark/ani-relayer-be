@@ -11,6 +11,6 @@ export class User {
   @Column()
   password: string;
 
-  @Column()
-  roomId: number = -1;
+  @Column({ default: -1 })
+  roomId: number;
 }

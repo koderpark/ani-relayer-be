@@ -8,6 +8,7 @@ import { UserModule } from './user/user.module';
 import { User } from './user/entities/user.entity';
 import { AuthModule } from './auth/auth.module';
 import { RoomModule } from './room/room.module';
+import { Room } from './room/entities/room.entity';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { RoomModule } from './room/room.module';
       username: process.env.DB,
       password: process.env.DBPW,
       database: 'test',
-      entities: [User],
+      entities: [User, Room],
       synchronize: true,
     }),
     SocketModule,
