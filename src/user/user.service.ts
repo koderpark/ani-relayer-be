@@ -43,8 +43,8 @@ export class UserService {
 
   async remove() {}
 
-  async chkId(id: string): Promise<boolean> {
-    const cnt = await this.userRepository.countBy({ id });
+  async chkId(loginId: string): Promise<boolean> {
+    const cnt = await this.userRepository.countBy({ loginId });
     if (cnt == 0) return true;
     return false;
   }

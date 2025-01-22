@@ -5,10 +5,10 @@ import { map } from 'rxjs';
 
 export class UserKeyDto {
   @IsOptional()
-  @IsString()
-  id?: string;
+  @IsNumber()
+  userId?: number;
 
   @IsOptional()
-  @IsNumber()
-  key?: number;
+  @IsString()
+  loginId?: string;
 }

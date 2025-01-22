@@ -19,14 +19,14 @@ export class AuthService {
   ) {}
 
   async login(key: UserKeyDto, data: AuthLoginDto) {
-    const payload = { key: key.key, id: data.id };
+    const payload = { userId: key.userId, loginId: data.loginId };
     return {
       access_token: this.jwtService.sign(payload),
     };
   }
 
   async register(data: AuthRegisterDto) {
-    const chk = await this.userService.chkId(data.id);
+    const chk = await this.userService.chkId(data.loginId);
     if (!chk)
       throw new HttpException('already_used_id', HttpStatus.BAD_REQUEST);
 
@@ -46,13 +46,13 @@ export class AuthService {
   }
 
   async chkPassword(data: AuthLoginDto) {
-    const user = await this.userService.readWithPW({ id: data.id });
+    const user = await this.userService.readWithPW({ loginId: data.loginId });
     if (!user) return null;
 
     const comp = await bcrypt.compare(data.password, user.password);
     if (comp) {
-      const { key, ...rest } = user;
-      return { key };
+      const { userId, ...rest } = user;
+      return { userId };
     } else return null;
   }
 }
