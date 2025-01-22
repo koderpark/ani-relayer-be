@@ -25,17 +25,12 @@ export class RoomController {
   @UseGuards(AuthGuard('jwt'))
   @Post()
   async create(@Req() req, @Body() body: RoomCreateDto): Promise<RoomQueryDto> {
-    return this.roomService.create(parseKey(req.user), body);
-  }
-
-  @Get()
-  findAll() {
-    return this.roomService.findAll();
+    return await this.roomService.create(parseKey(req.user), body);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.roomService.findOne(+id);
+  async read(@Param('id') id: number) {
+    return await this.roomService.read(id);
   }
 
   @Patch(':id')
@@ -46,5 +41,10 @@ export class RoomController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.roomService.remove(+id);
+  }
+
+  @Get('list')
+  async readAll() {
+    return await this.roomService.readAll();
   }
 }

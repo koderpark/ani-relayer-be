@@ -19,6 +19,10 @@ export class RoomQueryDto {
 
   @IsNotEmpty()
   @IsString()
+  roomName: string;
+
+  @IsNotEmpty()
+  @IsString()
   vidName: string;
 
   @IsNotEmpty()
