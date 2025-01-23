@@ -7,10 +7,13 @@ import { Repository } from 'typeorm';
 import { RoomQueryDto } from './dto/room-query.dto';
 import { UserKeyDto } from 'src/user/dto/user-key.dto';
 import { UserService } from 'src/user/user.service';
+import { RoomMem } from './entities/room-mem.entity';
 
 @Injectable()
 export class RoomService {
   private logger: Logger = new Logger('RoomService');
+
+  RoomList: Map<number, RoomMem>;
 
   constructor(
     @InjectRepository(Room)
@@ -33,6 +36,9 @@ export class RoomService {
     const room = this.roomRepository.create(fill);
     await this.roomRepository.save(room);
     await this.userService.update(key, { roomId: room.roomId });
+
+    this.RoomList.set(room.roomId, new RoomMem());
+    this.RoomList[room.roomId].addUser(key.userId);
     return room;
   }
 
