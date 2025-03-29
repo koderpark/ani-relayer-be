@@ -28,6 +28,25 @@ export class RoomController {
     return await this.roomService.create(parseKey(req.user), body);
   }
 
+  @ApiBearerAuth('access-token')
+  @UseGuards(AuthGuard('jwt'))
+  @Post('/exit')
+  async exit(@Req() req) {
+    return await this.roomService.exit(parseKey(req.user));
+  }
+
+  @Get('list')
+  async readAll() {
+    return await this.roomService.readAll();
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(AuthGuard('jwt'))
+  @Get('my')
+  async getMyRoom(@Req() req) {
+    return await this.roomService.getMyRoom(parseKey(req.user));
+  }
+
   @Get(':id')
   async read(@Param('id') id: number) {
     return await this.roomService.read(id);
@@ -36,15 +55,5 @@ export class RoomController {
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateRoomDto: RoomUpdateDto) {
     return this.roomService.update(+id, updateRoomDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.roomService.remove(+id);
-  }
-
-  @Get('list')
-  async readAll() {
-    return await this.roomService.readAll();
   }
 }

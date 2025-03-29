@@ -22,6 +22,7 @@ export class RoomService {
   ) {}
 
   async create(key: UserKeyDto, body: RoomCreateDto): Promise<RoomQueryDto> {
+    this.logger.log(`create ${body.roomName}`);
     const chk = await this.userService.read(key);
     if (chk.roomId != -1)
       throw new HttpException('already_in_room', HttpStatus.BAD_REQUEST);
@@ -37,8 +38,6 @@ export class RoomService {
     await this.roomRepository.save(room);
     await this.userService.update(key, { roomId: room.roomId });
 
-    this.RoomList.set(room.roomId, new RoomMem());
-    this.RoomList[room.roomId].addUser(key.userId);
     return room;
   }
 
@@ -57,12 +56,34 @@ export class RoomService {
     return `This action updates a #${id} room`;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} room`;
+  async exit(key: UserKeyDto) {
+    const user = await this.userService.read(key);
+    if (user.roomId == -1)
+      throw new HttpException('not_in_room', HttpStatus.BAD_REQUEST);
+
+    const room = await this.roomRepository.findOneBy({ roomId: user.roomId });
+    if (!room)
+      throw new HttpException('room_not_found', HttpStatus.BAD_REQUEST);
+
+    await this.userService.update(key, { roomId: -1 });
+
+    if (room.ownerId == user.userId) {
+      await this.roomRepository.delete(user.roomId);
+    } else {
+      await this.userService.update(key, { roomId: -1 });
+      await this.roomRepository.update(user.roomId, {
+        cntViewer: room.cntViewer - 1,
+      });
+    }
   }
 
   async generateCode(): Promise<number> {
     // make a random non-colide code
     return Math.random() * 100000;
+  }
+
+  async getMyRoom(key: UserKeyDto): Promise<number> {
+    const user = await this.userService.read(key);
+    return user.roomId;
   }
 }
