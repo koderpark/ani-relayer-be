@@ -30,6 +30,23 @@ export class SocketGateway
     // return data;
   }
 
+  @SubscribeMessage('identify')
+  handleIdentify(
+    @MessageBody() data: string,
+    @ConnectedSocket() client: Socket,
+  ): void {
+    this.logger.log(`${client.id} sended ${data}`);
+  }
+
+  @SubscribeMessage('exclude')
+  handleExclude(
+    @MessageBody() data: string,
+    @ConnectedSocket() client: Socket,
+  ): void {
+    this.logger.log(`${client.id} sended ${data}`);
+    client.to(client.id).emit('exclude', data);
+  }
+
   afterInit(server: Server) {
     this.logger.log('웹소켓 서버 초기화 ✅');
   }
