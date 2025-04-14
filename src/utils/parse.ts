@@ -1,8 +1,8 @@
 import { UserKeyDto } from 'src/user/dto/user-key.dto';
 
 function parseKey(data: UserKeyDto): UserKeyDto {
-  const { key, id, ...left } = data;
-  return { key, id };
+  const { userId, loginId, ...left } = data;
+  return { userId, loginId };
 }
 
 export { parseKey };

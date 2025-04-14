@@ -28,4 +28,11 @@ export class AuthController {
   async updatePw(@Req() req, @Body() body: AuthChangePWDto): Promise<Boolean> {
     return this.authService.changePassword(parseKey(req.user), body);
   }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(AuthGuard('jwt'))
+  @Post('/chkJWT')
+  async chkJWT(@Req() req): Promise<Boolean> {
+    return true;
+  }
 }

@@ -11,4 +11,8 @@ export class UserUpdateDto {
   @IsOptional()
   @IsString()
   password?: string;
+
+  @IsOptional()
+  @IsNumber()
+  roomId?: number;
 }

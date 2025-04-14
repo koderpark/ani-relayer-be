@@ -9,7 +9,7 @@ export class AuthRegisterDto {
   })
   @IsString()
   @IsNotEmpty()
-  id: string;
+  loginId: string;
 
   @ApiProperty({
     example: 'P@ssw0rd',

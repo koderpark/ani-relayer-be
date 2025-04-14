@@ -4,9 +4,13 @@ import { IsEmail, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 export class UserMaskedDto {
   @IsNumber()
   @IsNotEmpty()
-  key: number;
+  userId: number;
 
   @IsString()
   @IsNotEmpty()
-  id: string;
+  loginId: string;
+
+  @IsNumber()
+  @IsNotEmpty()
+  roomId: number;
 }

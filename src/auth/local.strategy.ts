@@ -10,17 +10,14 @@ import { UserKeyDto } from 'src/user/dto/user-key.dto';
 export class LocalStrategy extends PassportStrategy(Strategy, 'local') {
   private logger: Logger = new Logger('LocalStrategy');
 
-  constructor(
-    private readonly authService: AuthService,
-    private readonly userService: UserService,
-  ) {
+  constructor(private readonly authService: AuthService) {
     super({
-      usernameField: 'id',
+      usernameField: 'loginId',
     });
   }
 
-  async validate(id: string, password: string): Promise<UserKeyDto> {
-    const userKey = await this.authService.chkPassword({ id, password });
+  async validate(loginId: string, password: string): Promise<UserKeyDto> {
+    const userKey = await this.authService.chkPassword({ loginId, password });
 
     if (!userKey) throw new UnauthorizedException();
     return userKey;
