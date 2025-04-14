@@ -3,8 +3,6 @@ import { UserService } from '../user/user.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { AuthRegisterDto } from './dto/auth-register.dto';
-import { User } from 'src/user/entities/user.entity';
-import { UserMaskedDto } from 'src/user/dto/user-masked.dto';
 import { AuthLoginDto } from './dto/auth-login.dto';
 import { UserKeyDto } from 'src/user/dto/user-key.dto';
 import { AuthChangePWDto } from './dto/auth-change-pw.dto';
@@ -54,5 +52,14 @@ export class AuthService {
       const { userId, ...rest } = user;
       return { userId };
     } else return null;
+  }
+
+  async jwtVerify(token: string) {
+    try {
+      const payload = this.jwtService.verify(token);
+      return payload;
+    } catch (error) {
+      return null;
+    }
   }
 }

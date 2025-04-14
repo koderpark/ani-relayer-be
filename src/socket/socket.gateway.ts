@@ -10,12 +10,13 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { SocketService } from './socket.service';
 
 @WebSocketGateway(8081, { cors: { origin: '*' } })
 export class SocketGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
-  constructor() {}
+  constructor(private readonly socketService: SocketService) {}
 
   @WebSocketServer() server: Server;
   private logger: Logger = new Logger('websocket');
@@ -30,34 +31,17 @@ export class SocketGateway
     // return data;
   }
 
-  @SubscribeMessage('identify')
-  handleIdentify(
-    @MessageBody() data: string,
-    @ConnectedSocket() client: Socket,
-  ): void {
-    this.logger.log(`${client.id} sended ${data}`);
-  }
-
-  @SubscribeMessage('exclude')
-  handleExclude(
-    @MessageBody() data: string,
-    @ConnectedSocket() client: Socket,
-  ): void {
-    this.logger.log(`${client.id} sended ${data}`);
-    client.to(client.id).emit('exclude', data);
-  }
-
   afterInit(server: Server) {
     this.logger.log('웹소켓 서버 초기화 ✅');
   }
 
   async handleConnection(client: Socket): Promise<void> {
-    const socketId = client.id;
-    this.logger.log(`${socketId} connected`);
+    await this.socketService.onSocketLogin(client);
+    return;
   }
 
   async handleDisconnect(client: Socket): Promise<void> {
-    const socketId = client.id;
-    this.logger.log(`${socketId} disconnected`);
+    await this.socketService.onSocketLogout(client);
+    return;
   }
 }
