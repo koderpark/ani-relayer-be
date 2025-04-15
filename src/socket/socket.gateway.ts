@@ -11,6 +11,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { SocketService } from './socket.service';
+import { VideoParseDto } from './dto/video-parse.dto';
 
 @WebSocketGateway(8081, { cors: { origin: '*' } })
 export class SocketGateway
@@ -33,6 +34,14 @@ export class SocketGateway
 
   afterInit(server: Server) {
     this.logger.log('웹소켓 서버 초기화 ✅');
+  }
+
+  @SubscribeMessage('updateVid')
+  handleUpdateVid(
+    @MessageBody() videoParseDto: VideoParseDto,
+    @ConnectedSocket() client: Socket,
+  ): void {
+    this.socketService.updateVideoStatus(client, videoParseDto);
   }
 
   async handleConnection(client: Socket): Promise<void> {

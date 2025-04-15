@@ -5,6 +5,7 @@ import { UserKeyDto } from 'src/user/dto/user-key.dto';
 import { UserService } from 'src/user/user.service';
 import { AuthService } from 'src/auth/auth.service';
 import { parseKey } from 'src/utils/parse';
+import { VideoParseDto } from './dto/video-parse.dto';
 @Injectable()
 export class SocketService {
   private logger: Logger = new Logger('SocketService');
@@ -22,7 +23,15 @@ export class SocketService {
       return;
     }
 
+    const roomId = await this.roomService.getMyRoom(key);
+    if (roomId != -1) client.join(roomId.toString());
+    else {
+      client.disconnect();
+      return;
+    }
+
     this.logger.log(`success login ${client.id}`);
+    this.logger.log(`join room ${roomId}`);
     return key;
   }
 
@@ -31,10 +40,15 @@ export class SocketService {
     this.logger.log(`${socketId} disconnected`);
   }
 
-  async msgExcludeMe(client: Socket) {
+  async updateVideoStatus(client: Socket, videoParseDto: VideoParseDto) {
+    console.log(videoParseDto);
+    this.msgExcludeMe(client, 'updateVid', videoParseDto);
+  }
+
+  async msgExcludeMe(client: Socket, eventName: string, body: any) {
     const key = await this.clientToKey(client);
     const roomId = await this.roomService.getMyRoom(key);
-    client.to(roomId.toString()).emit('events', client.id);
+    client.to(roomId.toString()).emit(eventName, body);
   }
 
   async msgInRoom(client: Socket, server: Server) {
