@@ -12,10 +12,6 @@ export class RoomQueryDto {
 
   @IsNotEmpty()
   @IsNumber()
-  code: number;
-
-  @IsNotEmpty()
-  @IsNumber()
   cntViewer?: number;
 
   @IsNotEmpty()

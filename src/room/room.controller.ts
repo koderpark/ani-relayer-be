@@ -16,7 +16,7 @@ import { RoomQueryDto } from './dto/room-query.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { RoomCreateDto } from './dto/room-create.dto';
-
+import { RoomJoinDto } from './dto/room-join.dto';
 @Controller('room')
 export class RoomController {
   constructor(private readonly roomService: RoomService) {}
@@ -43,8 +43,12 @@ export class RoomController {
   @ApiBearerAuth('access-token')
   @UseGuards(AuthGuard('jwt'))
   @Post('/join')
-  async joinRoom(@Req() req, @Body() body: { roomId: number }) {
-    return await this.roomService.joinRoom(parseKey(req.user), body.roomId);
+  async joinRoom(@Req() req, @Body() body: RoomJoinDto) {
+    return await this.roomService.joinRoom(
+      parseKey(req.user),
+      body.roomId,
+      body.password,
+    );
   }
 
   @ApiBearerAuth('access-token')

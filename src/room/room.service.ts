@@ -29,7 +29,6 @@ export class RoomService {
 
     const fill = {
       ownerId: key.userId,
-      code: await this.generateCode(),
       cntViewer: 1,
       roomName: body.roomName,
       password: body.password,
@@ -64,23 +63,38 @@ export class RoomService {
       throw new HttpException('not_in_room', HttpStatus.BAD_REQUEST);
 
     const room = await this.roomRepository.findOneBy({ roomId: user.roomId });
-    if (!room)
-      throw new HttpException('room_not_found', HttpStatus.BAD_REQUEST);
-
     await this.userService.update(key, { roomId: -1 });
 
-    if (room.ownerId == user.userId) {
-      await this.roomRepository.delete(user.roomId);
-    } else {
-      await this.userService.update(key, { roomId: -1 });
-      await this.roomRepository.update(user.roomId, {
-        cntViewer: room.cntViewer - 1,
-      });
+    if (room) {
+      if (room.ownerId == user.userId) {
+        await this.roomRepository.delete(user.roomId);
+      } else {
+        await this.userService.update(key, { roomId: -1 });
+        await this.roomRepository.update(user.roomId, {
+          cntViewer: room.cntViewer - 1,
+        });
+      }
     }
   }
 
-  async joinRoom(key: UserKeyDto, roomId: number) {
+  async checkPW(roomId: number, password?: number): Promise<boolean> {
+    const room = await this.roomRepository.findOne({
+      where: { roomId },
+      select: ['password'],
+    });
+    if (!room)
+      throw new HttpException('room_not_found', HttpStatus.BAD_REQUEST);
+
+    this.logger.log(`checkPW ${room.password} - ${password}`);
+
+    if (room.password == null) return true;
+    if (password == null) return false;
+    return room.password == password;
+  }
+
+  async joinRoom(key: UserKeyDto, roomId: number, password?: number) {
     const user = await this.userService.read(key);
+
     if (user.roomId != -1)
       throw new HttpException('already_in_room', HttpStatus.BAD_REQUEST);
 
@@ -88,17 +102,17 @@ export class RoomService {
     if (!room)
       throw new HttpException('room_not_found', HttpStatus.BAD_REQUEST);
 
+    if (!(await this.checkPW(roomId, password))) {
+      this.logger.log(`wrong password ${roomId} ${password}`);
+      throw new HttpException('wrong_password', HttpStatus.BAD_REQUEST);
+    }
+
     this.logger.log(`join room ${roomId}`);
     await this.roomRepository.update(roomId, {
       cntViewer: room.cntViewer + 1,
     });
 
     await this.userService.update(key, { roomId });
-  }
-
-  async generateCode(): Promise<number> {
-    // make a random non-colide code
-    return Math.random() * 100000;
   }
 
   async getMyRoom(key: UserKeyDto): Promise<number> {
