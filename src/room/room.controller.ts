@@ -42,6 +42,13 @@ export class RoomController {
 
   @ApiBearerAuth('access-token')
   @UseGuards(AuthGuard('jwt'))
+  @Post('/join')
+  async joinRoom(@Req() req, @Body() body: { roomId: number }) {
+    return await this.roomService.joinRoom(parseKey(req.user), body.roomId);
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(AuthGuard('jwt'))
   @Get('my')
   async getMyRoom(@Req() req) {
     return await this.roomService.getMyRoom(parseKey(req.user));

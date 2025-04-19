@@ -32,9 +32,11 @@ export class RoomService {
       code: await this.generateCode(),
       cntViewer: 1,
       roomName: body.roomName,
+      password: body.password,
     };
 
     const room = this.roomRepository.create(fill);
+
     await this.roomRepository.save(room);
     await this.userService.update(key, { roomId: room.roomId });
 
@@ -75,6 +77,23 @@ export class RoomService {
         cntViewer: room.cntViewer - 1,
       });
     }
+  }
+
+  async joinRoom(key: UserKeyDto, roomId: number) {
+    const user = await this.userService.read(key);
+    if (user.roomId != -1)
+      throw new HttpException('already_in_room', HttpStatus.BAD_REQUEST);
+
+    const room = await this.roomRepository.findOneBy({ roomId });
+    if (!room)
+      throw new HttpException('room_not_found', HttpStatus.BAD_REQUEST);
+
+    this.logger.log(`join room ${roomId}`);
+    await this.roomRepository.update(roomId, {
+      cntViewer: room.cntViewer + 1,
+    });
+
+    await this.userService.update(key, { roomId });
   }
 
   async generateCode(): Promise<number> {

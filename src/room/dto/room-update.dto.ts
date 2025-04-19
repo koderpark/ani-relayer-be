@@ -16,4 +16,8 @@ export class RoomUpdateDto {
   @IsOptional()
   @IsNumber()
   vidEpisode?: number;
+
+  @IsOptional()
+  @IsNumber()
+  password?: number;
 }

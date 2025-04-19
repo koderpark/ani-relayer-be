@@ -26,4 +26,7 @@ export class Room {
 
   @Column({ default: -1 })
   vidEpisode: number;
+
+  @Column({ default: null, select: false })
+  password?: number;
 }
