@@ -50,7 +50,7 @@ export class RoomService {
 
   async readAll(): Promise<RoomQueryDto[]> {
     const room = await this.roomRepository.find();
-    return room; // Todo: decorate&filter response
+    return room;
   }
 
   update(id: number, updateRoomDto: RoomUpdateDto) {
@@ -118,5 +118,13 @@ export class RoomService {
   async getMyRoom(key: UserKeyDto): Promise<number> {
     const user = await this.userService.read(key);
     return user.roomId;
+  }
+
+  async updateVideoMetadata(roomId: number, url: string) {
+    const room = await this.roomRepository.findOneBy({ roomId });
+    if (!room)
+      throw new HttpException('room_not_found', HttpStatus.BAD_REQUEST);
+
+    await this.roomRepository.update(roomId, { vidUrl: url });
   }
 }

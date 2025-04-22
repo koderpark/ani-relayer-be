@@ -41,8 +41,14 @@ export class SocketService {
   }
 
   async updateVideoStatus(client: Socket, videoParseDto: VideoParseDto) {
-    console.log(videoParseDto);
+    const key = await this.clientToKey(client);
+    const roomId = await this.roomService.getMyRoom(key);
+
+    const { url } = videoParseDto;
+
+    console.log(`${roomId} updated ${JSON.stringify(videoParseDto)}`);
     this.msgExcludeMe(client, 'updateVid', videoParseDto);
+    this.roomService.updateVideoMetadata(roomId, url);
   }
 
   async msgExcludeMe(client: Socket, eventName: string, body: any) {
