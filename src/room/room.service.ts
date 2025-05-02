@@ -7,13 +7,10 @@ import { Repository } from 'typeorm';
 import { RoomQueryDto } from './dto/room-query.dto';
 import { UserKeyDto } from 'src/user/dto/user-key.dto';
 import { UserService } from 'src/user/user.service';
-import { RoomMem } from './entities/room-mem.entity';
-
+import { RoomRespDto } from './dto/room-resp.dto';
 @Injectable()
 export class RoomService {
   private logger: Logger = new Logger('RoomService');
-
-  RoomList: Map<number, RoomMem>;
 
   constructor(
     @InjectRepository(Room)
@@ -21,7 +18,13 @@ export class RoomService {
     private readonly userService: UserService,
   ) {}
 
-  async create(key: UserKeyDto, body: RoomCreateDto): Promise<RoomQueryDto> {
+  async makeResponse(key: UserKeyDto, room: Room): Promise<RoomRespDto> {
+    const { roomId, cntViewer, roomName } = room;
+    const isOwner = room.ownerId === key.userId;
+    return { id: roomId, cntViewer, isOwner, name: roomName };
+  }
+
+  async create(key: UserKeyDto, body: RoomCreateDto): Promise<RoomRespDto> {
     this.logger.log(`create ${body.roomName}`);
     const chk = await this.userService.read(key);
     if (chk.roomId != -1)
@@ -38,8 +41,14 @@ export class RoomService {
 
     await this.roomRepository.save(room);
     await this.userService.update(key, { roomId: room.roomId });
+    return this.makeResponse(key, room);
+  }
 
-    return room;
+  async myRoom(key: UserKeyDto): Promise<RoomRespDto | null> {
+    const user = await this.userService.read(key);
+    const room = await this.roomRepository.findOneBy({ roomId: user.roomId });
+    if (!room) return null;
+    return this.makeResponse(key, room);
   }
 
   async read(id: number): Promise<RoomQueryDto | null> {
@@ -92,7 +101,11 @@ export class RoomService {
     return room.password == password;
   }
 
-  async joinRoom(key: UserKeyDto, roomId: number, password?: number) {
+  async joinRoom(
+    key: UserKeyDto,
+    roomId: number,
+    password?: number,
+  ): Promise<RoomRespDto> {
     const user = await this.userService.read(key);
 
     if (user.roomId != -1)
@@ -113,11 +126,7 @@ export class RoomService {
     });
 
     await this.userService.update(key, { roomId });
-  }
-
-  async getMyRoom(key: UserKeyDto): Promise<number> {
-    const user = await this.userService.read(key);
-    return user.roomId;
+    return this.makeResponse(key, room);
   }
 
   async updateVideoMetadata(roomId: number, url: string) {

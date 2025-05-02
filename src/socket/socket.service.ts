@@ -23,15 +23,15 @@ export class SocketService {
       return;
     }
 
-    const roomId = await this.roomService.getMyRoom(key);
-    if (roomId != -1) client.join(roomId.toString());
+    const room = await this.roomService.myRoom(key);
+    if (room.id != -1) client.join(room.id.toString());
     else {
       client.disconnect();
       return;
     }
 
     this.logger.log(`success login ${client.id}`);
-    this.logger.log(`join room ${roomId}`);
+    this.logger.log(`join room ${room.id}`);
     return key;
   }
 
@@ -42,25 +42,25 @@ export class SocketService {
 
   async updateVideoStatus(client: Socket, videoParseDto: VideoParseDto) {
     const key = await this.clientToKey(client);
-    const roomId = await this.roomService.getMyRoom(key);
+    const room = await this.roomService.myRoom(key);
 
     const { url } = videoParseDto;
 
-    console.log(`${roomId} updated ${JSON.stringify(videoParseDto)}`);
+    console.log(`${room.id} updated ${JSON.stringify(videoParseDto)}`);
     this.msgExcludeMe(client, 'updateVid', videoParseDto);
-    this.roomService.updateVideoMetadata(roomId, url);
+    this.roomService.updateVideoMetadata(room.id, url);
   }
 
   async msgExcludeMe(client: Socket, eventName: string, body: any) {
     const key = await this.clientToKey(client);
-    const roomId = await this.roomService.getMyRoom(key);
-    client.to(roomId.toString()).emit(eventName, body);
+    const room = await this.roomService.myRoom(key);
+    client.to(room.id.toString()).emit(eventName, body);
   }
 
   async msgInRoom(client: Socket, server: Server) {
     const key = await this.clientToKey(client);
-    const roomId = await this.roomService.getMyRoom(key);
-    server.to(roomId.toString()).emit('inRoom', roomId);
+    const room = await this.roomService.myRoom(key);
+    server.to(room.id.toString()).emit('inRoom', room.id);
   }
 
   async clientToKey(client: Socket): Promise<UserKeyDto> {
