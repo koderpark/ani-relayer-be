@@ -17,6 +17,7 @@ export class SocketService {
   ) {}
 
   async onSocketLogin(client: Socket) {
+    this.logger.log(`onSocketLogin ${client.id}`);
     const key = await this.clientToKey(client);
     if (!key) {
       client.disconnect();
@@ -24,6 +25,10 @@ export class SocketService {
     }
 
     const room = await this.roomService.myRoom(key);
+    if (!room) {
+      client.disconnect();
+      return;
+    }
     if (room.id != -1) client.join(room.id.toString());
     else {
       client.disconnect();
@@ -38,12 +43,17 @@ export class SocketService {
   async onSocketLogout(client: Socket) {
     const socketId = client.id;
     this.logger.log(`${socketId} disconnected`);
+
+    const key = await this.clientToKey(client);
+    if (!key) return;
+
+    await this.roomService.exit(key);
   }
 
   async updateVideoStatus(client: Socket, videoParseDto: VideoParseDto) {
     const key = await this.clientToKey(client);
     const room = await this.roomService.myRoom(key);
-
+    if (!room) return;
     const { url } = videoParseDto;
 
     console.log(`${room.id} updated ${JSON.stringify(videoParseDto)}`);
@@ -54,12 +64,14 @@ export class SocketService {
   async msgExcludeMe(client: Socket, eventName: string, body: any) {
     const key = await this.clientToKey(client);
     const room = await this.roomService.myRoom(key);
+    if (!room) return;
     client.to(room.id.toString()).emit(eventName, body);
   }
 
   async msgInRoom(client: Socket, server: Server) {
     const key = await this.clientToKey(client);
     const room = await this.roomService.myRoom(key);
+    if (!room) return;
     server.to(room.id.toString()).emit('inRoom', room.id);
   }
 

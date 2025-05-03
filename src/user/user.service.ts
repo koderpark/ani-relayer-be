@@ -46,4 +46,15 @@ export class UserService {
     if (cnt == 0) return true;
     return false;
   }
+
+  async roomMembers(roomId: number): Promise<{ id: number; name: string }[]> {
+    const userList = await this.userRepository.findBy({ roomId });
+    const peers = userList.map((user) => {
+      return {
+        id: user.userId,
+        name: user.loginId,
+      };
+    });
+    return peers;
+  }
 }

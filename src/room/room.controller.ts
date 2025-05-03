@@ -65,6 +65,11 @@ export class RoomController {
     return await this.roomService.read(id);
   }
 
+  @Get(':id/peers')
+  async roomPeers(@Param('id') id: number) {
+    return await this.roomService.roomPeers(id);
+  }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateRoomDto: RoomUpdateDto) {
     return this.roomService.update(+id, updateRoomDto);
