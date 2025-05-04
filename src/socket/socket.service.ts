@@ -34,7 +34,8 @@ export class SocketService {
 
     this.logger.log(`success login ${client.id}`);
     this.logger.log(`join room ${room.id}`);
-    await this.msgExcludeMe(client, 'updateRoom');
+    await client.join(room.id.toString());
+    await this.msgExcludeMe(client, 'roomUpdate');
     return key;
   }
 
@@ -44,7 +45,7 @@ export class SocketService {
 
     const key = await this.clientToKey(client);
     if (!key) return;
-    await this.msgExcludeMe(client, 'updateRoom');
+    await this.msgExcludeMe(client, 'roomUpdate');
     await this.roomService.exit(key);
   }
 
@@ -57,10 +58,6 @@ export class SocketService {
     console.log(`${room.id} updated ${JSON.stringify(videoParseDto)}`);
     this.msgExcludeMe(client, 'updateVid', videoParseDto);
     this.roomService.updateVideoMetadata(room.id, url);
-  }
-
-  async renewRoom(client: Socket) {
-    this.msgExcludeMe(client, 'roomRenew');
   }
 
   async msgExcludeMe(client: Socket, eventName: string, body?: any) {

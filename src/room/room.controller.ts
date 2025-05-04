@@ -27,13 +27,8 @@ export class RoomController {
   @ApiBearerAuth('access-token')
   @UseGuards(AuthGuard('jwt'))
   @Post()
-  async create(
-    @Req() req,
-    @Body() body: RoomCreateDto,
-  ): Promise<Room | 'null'> {
-    const res = await this.roomService.create(parseKey(req.user), body);
-    if (!res) return 'null';
-    return res;
+  async create(@Req() req, @Body() body: RoomCreateDto): Promise<Room> {
+    return await this.roomService.create(parseKey(req.user), body);
   }
 
   @ApiBearerAuth('access-token')
@@ -54,17 +49,12 @@ export class RoomController {
   @ApiBearerAuth('access-token')
   @UseGuards(AuthGuard('jwt'))
   @Post('/join')
-  async joinRoom(
-    @Req() req,
-    @Body() body: RoomJoinDto,
-  ): Promise<Room | 'null'> {
-    const res = await this.roomService.joinRoom(
+  async joinRoom(@Req() req, @Body() body: RoomJoinDto): Promise<Room> {
+    return await this.roomService.joinRoom(
       parseKey(req.user),
       body.id,
       body.password,
     );
-    if (!res) return 'null';
-    return res;
   }
 
   @ApiBearerAuth('access-token')

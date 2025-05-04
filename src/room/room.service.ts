@@ -160,4 +160,12 @@ export class RoomService {
   async updateVideoMetadata(id: number, url: string) {
     await this.roomRepository.update(id, { vidUrl: url });
   }
+
+  async updateRoom(key: UserKeyDto) {
+    const room = await this.readMine(key);
+    if (!room) throw new HttpException('not_in_room', HttpStatus.BAD_REQUEST);
+
+    const peers = await this.roomPeers(key);
+    return { room, peers };
+  }
 }
