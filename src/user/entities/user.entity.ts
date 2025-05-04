@@ -8,7 +8,7 @@ export class User {
   @Column()
   loginId: string;
 
-  @Column()
+  @Column({ select: false })
   password: string;
 
   @Column({ default: -1 })

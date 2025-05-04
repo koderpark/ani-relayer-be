@@ -33,24 +33,22 @@ export class AuthService {
   }
 
   async changePassword(key: UserKeyDto, data: AuthChangePWDto) {
-    const user = await this.userService.readWithPW(key);
-    const comp = await bcrypt.compare(data.oldPassword, user.password);
+    const password = await this.userService.readPW(key);
+    const comp = await bcrypt.compare(data.oldPassword, password);
 
     if (comp) {
-      const { password, ...rest } = user;
       const newPW = await bcrypt.hash(data.newPassword, 10);
       return await this.userService.update(key, { password: newPW });
     } else throw new HttpException('wrong_password', HttpStatus.BAD_REQUEST);
   }
 
   async chkPassword(data: AuthLoginDto) {
-    const user = await this.userService.readWithPW({ loginId: data.loginId });
-    if (!user) return null;
+    const password = await this.userService.readPW({ loginId: data.loginId });
+    if (!password) return null;
 
-    const comp = await bcrypt.compare(data.password, user.password);
+    const comp = await bcrypt.compare(data.password, password);
     if (comp) {
-      const { userId, ...rest } = user;
-      return { userId };
+      return { userId: data.loginId };
     } else return null;
   }
 

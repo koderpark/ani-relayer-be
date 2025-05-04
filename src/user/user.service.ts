@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
@@ -16,22 +16,27 @@ export class UserService {
     private userRepository: Repository<User>,
   ) {}
 
-  async create(data: UserCreateDto): Promise<boolean> {
+  async create(data: UserCreateDto): Promise<User> {
     const user = this.userRepository.create(data); // 엔티티 생성
     await this.userRepository.save(user); // 데이터베이스에 저장
-    return true;
+    return user;
   }
 
-  async read(key: UserKeyDto): Promise<UserMaskedDto | null> {
+  async read(key: UserKeyDto): Promise<UserMaskedDto> {
     const user = await this.userRepository.findOneBy(key);
-    if (!user) return null;
+    if (!user)
+      throw new HttpException('user_not_found', HttpStatus.BAD_REQUEST);
 
     const { password, ...left } = user;
     return left;
   }
 
-  async readWithPW(data: UserKeyDto): Promise<User | null> {
-    return await this.userRepository.findOneBy(data);
+  async readPW(data: UserKeyDto): Promise<string> {
+    const user = await this.userRepository.findOne({
+      where: { userId: data.userId },
+      select: ['userId', 'password'],
+    });
+    return user.password;
   }
 
   async update(key: UserKeyDto, data: UserUpdateDto) {
@@ -47,14 +52,7 @@ export class UserService {
     return false;
   }
 
-  async roomMembers(roomId: number): Promise<{ id: number; name: string }[]> {
-    const userList = await this.userRepository.findBy({ roomId });
-    const peers = userList.map((user) => {
-      return {
-        id: user.userId,
-        name: user.loginId,
-      };
-    });
-    return peers;
+  async roomMembers(roomId: number): Promise<User[]> {
+    return await this.userRepository.findBy({ roomId });
   }
 }
