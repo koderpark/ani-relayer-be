@@ -3,7 +3,7 @@ import { Entity, Column, PrimaryGeneratedColumn, Unique } from 'typeorm';
 @Entity()
 export class Room {
   @PrimaryGeneratedColumn() // PK
-  roomId: number;
+  id: number;
 
   @Column()
   ownerId: number;
@@ -12,7 +12,7 @@ export class Room {
   cntViewer: number;
 
   @Column()
-  roomName: string;
+  name: string;
 
   @Column({ default: '' })
   vidName: string;

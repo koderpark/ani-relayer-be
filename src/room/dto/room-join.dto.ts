@@ -9,7 +9,7 @@ export class RoomJoinDto {
   })
   @IsNotEmpty()
   @IsNumber()
-  roomId: number;
+  id: number;
 
   @ApiProperty({
     example: 1234,

@@ -20,17 +20,14 @@ export class SocketService {
     this.logger.log(`onSocketLogin ${client.id}`);
     const key = await this.clientToKey(client);
     if (!key) {
+      this.logger.log(`invalid token ${client.id}`);
       client.disconnect();
       return;
     }
 
-    const room = await this.roomService.myRoom(key);
+    const room = await this.roomService.readMine(key);
     if (!room) {
-      client.disconnect();
-      return;
-    }
-    if (room.id != -1) client.join(room.id.toString());
-    else {
+      this.logger.log(`already joined room ${client.id}`);
       client.disconnect();
       return;
     }
@@ -53,7 +50,7 @@ export class SocketService {
 
   async updateVideoStatus(client: Socket, videoParseDto: VideoParseDto) {
     const key = await this.clientToKey(client);
-    const room = await this.roomService.myRoom(key);
+    const room = await this.roomService.readMine(key);
     if (!room) return;
     const { url } = videoParseDto;
 
@@ -62,22 +59,27 @@ export class SocketService {
     this.roomService.updateVideoMetadata(room.id, url);
   }
 
+  async renewRoom(client: Socket) {
+    this.msgExcludeMe(client, 'roomRenew');
+  }
+
   async msgExcludeMe(client: Socket, eventName: string, body?: any) {
     const key = await this.clientToKey(client);
-    const room = await this.roomService.myRoom(key);
+    const room = await this.roomService.readMine(key);
     if (!room) return;
     client.to(room.id.toString()).emit(eventName, body);
   }
 
   async msgInRoom(client: Socket, server: Server) {
     const key = await this.clientToKey(client);
-    const room = await this.roomService.myRoom(key);
+    const room = await this.roomService.readMine(key);
     if (!room) return;
     server.to(room.id.toString()).emit('inRoom', room.id);
   }
 
   async clientToKey(client: Socket): Promise<UserKeyDto> {
     const token = client.handshake.auth.token;
+    this.logger.log(`clientToKey ${token}`);
     const verify = await this.authService.jwtVerify(token);
     if (!verify) return null;
     return parseKey(verify);

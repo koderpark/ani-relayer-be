@@ -42,21 +42,23 @@ export class AuthService {
     } else throw new HttpException('wrong_password', HttpStatus.BAD_REQUEST);
   }
 
-  async chkPassword(data: AuthLoginDto) {
+  async makeUserKey(data: AuthLoginDto): Promise<UserKeyDto> {
     const password = await this.userService.readPW({ loginId: data.loginId });
     if (!password) return null;
 
     const comp = await bcrypt.compare(data.password, password);
-    if (comp) {
-      return { userId: data.loginId };
-    } else return null;
+    if (!comp) return null;
+
+    const user = await this.userService.read({ loginId: data.loginId });
+    return { userId: user.userId, loginId: user.loginId };
   }
 
-  async jwtVerify(token: string) {
+  async jwtVerify(token: string): Promise<UserKeyDto> {
     try {
       const payload = this.jwtService.verify(token);
-      return payload;
+      return { userId: payload.userId, loginId: payload.loginId };
     } catch (error) {
+      this.logger.log(`jwtVerify error ${error}`);
       return null;
     }
   }

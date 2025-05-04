@@ -18,6 +18,7 @@ import { ApiBearerAuth } from '@nestjs/swagger';
 import { RoomCreateDto } from './dto/room-create.dto';
 import { RoomJoinDto } from './dto/room-join.dto';
 import { RoomRespDto } from './dto/room-resp.dto';
+import { Room } from './entities/room.entity';
 
 @Controller('room')
 export class RoomController {
@@ -26,52 +27,72 @@ export class RoomController {
   @ApiBearerAuth('access-token')
   @UseGuards(AuthGuard('jwt'))
   @Post()
-  async create(@Req() req, @Body() body: RoomCreateDto): Promise<RoomRespDto> {
-    return await this.roomService.create(parseKey(req.user), body);
+  async create(
+    @Req() req,
+    @Body() body: RoomCreateDto,
+  ): Promise<Room | 'null'> {
+    const res = await this.roomService.create(parseKey(req.user), body);
+    if (!res) return 'null';
+    return res;
   }
 
   @ApiBearerAuth('access-token')
   @UseGuards(AuthGuard('jwt'))
   @Post('/exit')
-  async exit(@Req() req) {
-    return await this.roomService.exit(parseKey(req.user));
+  async exit(@Req() req): Promise<boolean> {
+    await this.roomService.exit(parseKey(req.user));
+    return true;
   }
 
   @Get('list')
-  async readAll() {
-    return await this.roomService.readAll();
+  async readAll(): Promise<Room[] | 'null'> {
+    const res = await this.roomService.readAll();
+    if (!res) return 'null';
+    return res;
   }
 
   @ApiBearerAuth('access-token')
   @UseGuards(AuthGuard('jwt'))
   @Post('/join')
-  async joinRoom(@Req() req, @Body() body: RoomJoinDto): Promise<RoomRespDto> {
-    return await this.roomService.joinRoom(
+  async joinRoom(
+    @Req() req,
+    @Body() body: RoomJoinDto,
+  ): Promise<Room | 'null'> {
+    const res = await this.roomService.joinRoom(
       parseKey(req.user),
-      body.roomId,
+      body.id,
       body.password,
     );
+    if (!res) return 'null';
+    return res;
   }
 
   @ApiBearerAuth('access-token')
   @UseGuards(AuthGuard('jwt'))
   @Get('/my')
-  async myRoom(@Req() req) {
-    return await this.roomService.myRoom(parseKey(req.user));
+  async myRoom(@Req() req): Promise<Room | 'null'> {
+    const res = await this.roomService.readMine(parseKey(req.user));
+    if (!res) return 'null';
+    return res;
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(AuthGuard('jwt'))
+  @Get('/peers')
+  async roomPeers(
+    @Req() req,
+  ): Promise<
+    { id: number; name: string; isOwner: boolean; isMe: boolean }[] | 'null'
+  > {
+    const res = await this.roomService.roomPeers(parseKey(req.user));
+    if (!res) return 'null';
+    return res;
   }
 
   @Get(':id')
-  async read(@Param('id') id: number) {
-    return await this.roomService.read(id);
-  }
-
-  @Get(':id/peers')
-  async roomPeers(@Param('id') id: number) {
-    return await this.roomService.roomPeers(id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateRoomDto: RoomUpdateDto) {
-    return this.roomService.update(+id, updateRoomDto);
+  async read(@Param('id') id: number): Promise<Room | 'null'> {
+    const res = await this.roomService.read(id);
+    if (!res) return 'null';
+    return res;
   }
 }

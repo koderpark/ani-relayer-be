@@ -9,7 +9,7 @@ export class RoomCreateDto {
   })
   @IsNotEmpty()
   @IsString()
-  roomName: string;
+  name: string;
 
   @ApiProperty({
     example: 1234,

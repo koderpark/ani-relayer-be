@@ -4,7 +4,7 @@ import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 export class RoomQueryDto {
   @IsNotEmpty()
   @IsNumber()
-  roomId: number;
+  id: number;
 
   @IsNotEmpty()
   @IsNumber()
@@ -16,7 +16,7 @@ export class RoomQueryDto {
 
   @IsNotEmpty()
   @IsString()
-  roomName: string;
+  name: string;
 
   @IsNotEmpty()
   @IsString()

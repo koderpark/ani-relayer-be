@@ -18,146 +18,146 @@ export class RoomService {
     private readonly userService: UserService,
   ) {}
 
-  async makeResponse(key: UserKeyDto, room: Room): Promise<RoomRespDto> {
-    const { roomId, cntViewer, roomName } = room;
-    const isOwner = room.ownerId === key.userId;
-    return { id: roomId, cntViewer, isOwner, name: roomName };
-  }
+  async create(key: UserKeyDto, body: RoomCreateDto): Promise<Room> {
+    this.logger.log(`create Room ${body.name}`);
 
-  async create(key: UserKeyDto, body: RoomCreateDto): Promise<RoomRespDto> {
-    this.logger.log(`create Room ${body.roomName}`);
-    const chk = await this.userService.read(key);
-    if (chk.roomId != -1)
-      throw new HttpException('already_in_room', HttpStatus.BAD_REQUEST);
+    const chk = await this.readMine(key);
+    if (chk) throw new HttpException('already_in_room', HttpStatus.BAD_REQUEST);
 
     const fill = {
       ownerId: key.userId,
       cntViewer: 1,
-      roomName: body.roomName,
+      name: body.name,
       password: body.password,
     };
 
     const room = this.roomRepository.create(fill);
-
     await this.roomRepository.save(room);
-    await this.userService.update(key, { roomId: room.roomId });
-    return this.makeResponse(key, room);
+
+    await this.userService.update(key, { roomId: room.id });
+    return room;
   }
 
-  async myRoom(key: UserKeyDto): Promise<RoomRespDto | false> {
-    this.logger.log(`myRoom`);
-    const user = await this.userService.read(key);
-    const room = await this.roomRepository.findOneBy({ roomId: user.roomId });
-    if (!room) return false;
-    return this.makeResponse(key, room);
-  }
-
-  async read(id: number): Promise<RoomQueryDto | null> {
+  async read(id: number): Promise<Room> {
     this.logger.log(`read Room ${id}`);
-    const room = await this.roomRepository.findOneBy({ roomId: id });
-    if (!room) return null;
-    return room;
+    return await this.roomRepository.findOneBy({ id });
   }
 
-  async readAll(): Promise<RoomQueryDto[]> {
+  async readAll(): Promise<Room[]> {
     this.logger.log(`readAll`);
-    const room = await this.roomRepository.find();
-    return room;
+    return await this.roomRepository.find();
   }
 
-  async update(id: number, updateRoomDto: RoomUpdateDto) {
-    this.logger.log(`update Room ${id}`);
-    return `This action updates a #${id} room`;
+  async readPW(id: number): Promise<number> {
+    this.logger.log(`readPW`);
+    const chk = await this.read(id);
+    if (!chk) throw new HttpException('not_in_room', HttpStatus.BAD_REQUEST);
+
+    const room = await this.roomRepository.findOne({
+      where: { id: chk.id },
+      select: ['id', 'password'],
+    });
+    if (!room)
+      throw new HttpException('room_not_found', HttpStatus.BAD_REQUEST);
+
+    return room.password;
+  }
+
+  async readMine(key: UserKeyDto): Promise<Room> {
+    this.logger.log(`readMine`);
+
+    const user = await this.userService.read(key);
+    if (user.roomId == -1) return null;
+
+    return await this.read(user.roomId);
+  }
+
+  async update(key: UserKeyDto, data: RoomUpdateDto): Promise<boolean> {
+    const room = await this.readMine(key);
+    if (!room) return false;
+
+    const res = await this.roomRepository.update(room.id, data);
+    return res.affected ? true : false;
+  }
+
+  async remove(id: number): Promise<boolean> {
+    const room = await this.read(id);
+    if (!room) return false;
+
+    await this.roomRepository.delete(id);
+    return true;
   }
 
   async exit(key: UserKeyDto) {
     this.logger.log(`exit Room`);
     const user = await this.userService.read(key);
-    if (user.roomId == -1)
-      throw new HttpException('not_in_room', HttpStatus.BAD_REQUEST);
+    const room = await this.readMine(key);
+    if (!room) throw new HttpException('not_in_room', HttpStatus.BAD_REQUEST);
 
-    const room = await this.roomRepository.findOneBy({ roomId: user.roomId });
     await this.userService.update(key, { roomId: -1 });
 
-    if (room) {
-      if (room.ownerId == user.userId) {
-        await this.roomRepository.delete(user.roomId);
-      } else {
-        await this.roomRepository.update(user.roomId, {
-          cntViewer: room.cntViewer - 1,
-        });
-      }
+    if (room.ownerId == user.userId) {
+      await this.remove(room.id);
+    } else {
+      await this.update(key, { cntViewer: room.cntViewer - 1 });
     }
-  }
-
-  async checkPW(roomId: number, password?: number): Promise<boolean> {
-    this.logger.log(`checkPW ${roomId} - ${password}`);
-    const test = await this.roomRepository.findOneBy({ roomId });
-    console.log(test);
-    const room = await this.roomRepository.findOne({
-      where: { roomId: roomId },
-      select: ['roomId', 'password'],
-    });
-    console.log(room);
-    if (!room)
-      throw new HttpException(
-        'room_not_found_at_checkPW',
-        HttpStatus.BAD_REQUEST,
-      );
-
-    this.logger.log(`checkPW ${room.password} - ${password}`);
-    return room.password == password;
   }
 
   async joinRoom(
     key: UserKeyDto,
-    roomId: number,
+    id: number,
     password?: number,
-  ): Promise<RoomRespDto> {
-    this.logger.log(`joinRoom ${roomId}`);
-    const user = await this.userService.read(key);
+  ): Promise<Room> {
+    this.logger.log(`joinRoom ${id}`);
 
-    if (user.roomId != -1)
-      throw new HttpException('already_in_room', HttpStatus.BAD_REQUEST);
+    const chk = await this.readMine(key);
+    if (chk) throw new HttpException('already_in_room', HttpStatus.BAD_REQUEST);
 
-    const room = await this.roomRepository.findOneBy({ roomId });
+    const room = await this.read(id);
     if (!room)
       throw new HttpException('room_not_found', HttpStatus.BAD_REQUEST);
 
-    if (!(await this.checkPW(roomId, password))) {
-      this.logger.log(`wrong password ${roomId} ${password}`);
+    if ((await this.readPW(id)) != password)
       throw new HttpException('wrong_password', HttpStatus.BAD_REQUEST);
-    }
 
-    this.logger.log(`join room ${roomId}`);
-    await this.roomRepository.update(roomId, {
-      cntViewer: room.cntViewer + 1,
-    });
+    this.logger.log(`join room ${id}`);
 
-    await this.userService.update(key, { roomId });
-    return this.makeResponse(key, room);
+    await this.update(key, { cntViewer: room.cntViewer + 1 });
+    await this.userService.update(key, { roomId: id });
+
+    return await this.readMine(key);
   }
 
   async roomPeers(
-    roomId: number,
-  ): Promise<{ id: number; name: string; isOwner: boolean }[]> {
-    this.logger.log(`roomPeers ${roomId}`);
-    const room = await this.roomRepository.findOneBy({ roomId });
-    if (!room)
-      throw new HttpException('room_not_found', HttpStatus.BAD_REQUEST);
+    key: UserKeyDto,
+  ): Promise<
+    { id: number; name: string; isOwner: boolean; isMe: boolean }[] | false
+  > {
+    this.logger.log(`roomPeers`);
 
-    const member = await this.userService.roomMembers(roomId);
+    const user = await this.userService.read(key);
+    if (user.roomId == -1) return false;
+
+    const room = await this.roomRepository.findOneBy({ id: user.roomId });
+    if (!room) {
+      this.logger.log(`room_not_found ${user.roomId}`);
+      await this.exit(key);
+      throw new HttpException('room_not_found', HttpStatus.BAD_REQUEST);
+    }
+
+    const member = await this.userService.roomMembers(room.id);
     const peers = member.map((member) => {
       return {
-        id: member.id,
-        name: member.name,
-        isOwner: member.id == room.ownerId,
+        id: member.userId,
+        name: member.loginId,
+        isOwner: member.userId == room.ownerId,
+        isMe: member.userId == key.userId,
       };
     });
     return peers;
   }
 
-  async updateVideoMetadata(roomId: number, url: string) {
-    await this.roomRepository.update(roomId, { vidUrl: url });
+  async updateVideoMetadata(id: number, url: string) {
+    await this.roomRepository.update(id, { vidUrl: url });
   }
 }

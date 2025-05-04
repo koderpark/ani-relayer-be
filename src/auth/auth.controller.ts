@@ -6,6 +6,7 @@ import { AuthRegisterDto } from './dto/auth-register.dto';
 import { AuthChangePWDto } from './dto/auth-change-pw.dto';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { parseKey } from 'src/utils/parse';
+import { User } from 'src/user/entities/user.entity';
 
 @Controller('/auth')
 export class AuthController {
@@ -18,7 +19,7 @@ export class AuthController {
   }
 
   @Post('/register')
-  async register(@Body() body: AuthRegisterDto): Promise<boolean> {
+  async register(@Body() body: AuthRegisterDto): Promise<User> {
     return await this.authService.register(body);
   }
 
