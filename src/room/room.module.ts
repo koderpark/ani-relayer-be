@@ -4,13 +4,12 @@ import { RoomController } from './room.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Room } from './entities/room.entity';
 import { UserModule } from 'src/user/user.module';
-import { RoomGateway } from './room.gateway';
 import { SocketModule } from 'src/socket/socket.module';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Room]), UserModule, SocketModule],
   controllers: [RoomController],
-  providers: [RoomService, RoomGateway],
+  providers: [RoomService],
   exports: [RoomService],
 })
 export class RoomModule {}

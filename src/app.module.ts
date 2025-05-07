@@ -10,7 +10,6 @@ import { AuthModule } from './auth/auth.module';
 import { RoomModule } from './room/room.module';
 import { Room } from './room/entities/room.entity';
 import { PartyModule } from './party/party.module';
-import { PatyController } from './paty/paty.controller';
 
 @Module({
   imports: [
@@ -31,7 +30,7 @@ import { PatyController } from './paty/paty.controller';
     RoomModule,
     PartyModule,
   ],
-  controllers: [AppController, PatyController],
+  controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {}

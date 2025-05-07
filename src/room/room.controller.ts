@@ -32,14 +32,6 @@ export class RoomController {
     return await this.roomService.create(parseKey(req.user), body);
   }
 
-  @ApiBearerAuth('access-token')
-  @UseGuards(AuthGuard('jwt'))
-  @Post('/exit')
-  async exit(@Req() req): Promise<boolean> {
-    await this.roomService.exit(parseKey(req.user));
-    return true;
-  }
-
   @Get('list')
   async readAll(): Promise<Room[] | 'null'> {
     const res = await this.roomService.readAll();
@@ -49,33 +41,9 @@ export class RoomController {
 
   @ApiBearerAuth('access-token')
   @UseGuards(AuthGuard('jwt'))
-  @Post('/join')
-  async joinRoom(@Req() req, @Body() body: RoomJoinDto): Promise<Room> {
-    return await this.roomService.joinRoom(
-      parseKey(req.user),
-      body.id,
-      body.password,
-    );
-  }
-
-  @ApiBearerAuth('access-token')
-  @UseGuards(AuthGuard('jwt'))
   @Get('/my')
   async myRoom(@Req() req): Promise<Room | 'null'> {
     const res = await this.roomService.readMine(parseKey(req.user));
-    if (!res) return 'null';
-    return res;
-  }
-
-  @ApiBearerAuth('access-token')
-  @UseGuards(AuthGuard('jwt'))
-  @Get('/peers')
-  async roomPeers(
-    @Req() req,
-  ): Promise<
-    { id: number; name: string; isOwner: boolean; isMe: boolean }[] | 'null'
-  > {
-    const res = await this.roomService.roomPeers(parseKey(req.user));
     if (!res) return 'null';
     return res;
   }

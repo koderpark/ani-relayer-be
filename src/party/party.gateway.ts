@@ -11,14 +11,16 @@ import {
 import { Server, Socket } from 'socket.io';
 import { SocketService } from 'src/socket/socket.service';
 import { VideoParseDto } from 'src/socket/dto/video-parse.dto';
-import { RoomService } from './room.service';
+import { PartyService } from './party.service';
+import { RoomService } from 'src/room/room.service';
 
 @WebSocketGateway(8081, { cors: { origin: '*' } })
-export class RoomGateway
+export class PartyGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
   constructor(
     private readonly socketService: SocketService,
+    private readonly partyService: PartyService,
     private readonly roomService: RoomService,
   ) {}
 
@@ -48,12 +50,12 @@ export class RoomGateway
   }
 
   async handleConnection(client: Socket): Promise<void> {
-    await this.roomService.onSocketLogin(client);
+    await this.partyService.onSocketLogin(client);
     return;
   }
 
   async handleDisconnect(client: Socket): Promise<void> {
-    await this.roomService.onSocketLogout(client);
+    await this.partyService.onSocketLogout(client);
     return;
   }
 }
