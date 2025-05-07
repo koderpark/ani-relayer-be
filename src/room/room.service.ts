@@ -8,6 +8,11 @@ import { RoomQueryDto } from './dto/room-query.dto';
 import { UserKeyDto } from 'src/user/dto/user-key.dto';
 import { UserService } from 'src/user/user.service';
 import { RoomRespDto } from './dto/room-resp.dto';
+import { RoomVideoDto } from './dto/room-video.dto';
+import { SocketService } from 'src/socket/socket.service';
+import { Socket } from 'socket.io';
+import { VideoParseDto } from 'src/socket/dto/video-parse.dto';
+
 @Injectable()
 export class RoomService {
   private logger: Logger = new Logger('RoomService');
@@ -16,6 +21,7 @@ export class RoomService {
     @InjectRepository(Room)
     private roomRepository: Repository<Room>,
     private readonly userService: UserService,
+    private readonly socketService: SocketService,
   ) {}
 
   async create(key: UserKeyDto, body: RoomCreateDto): Promise<Room> {
@@ -157,8 +163,12 @@ export class RoomService {
     return peers;
   }
 
-  async updateVideoMetadata(id: number, url: string) {
-    await this.roomRepository.update(id, { vidUrl: url });
+  async updateVideo(key: UserKeyDto, video: RoomVideoDto) {
+    const room = await this.readMine(key);
+    if (!room) throw new HttpException('not_in_room', HttpStatus.BAD_REQUEST);
+
+    await this.roomRepository.update(room.id, video);
+    return true;
   }
 
   async updateRoom(key: UserKeyDto) {
@@ -167,5 +177,53 @@ export class RoomService {
 
     const peers = await this.roomPeers(key);
     return { room, peers };
+  }
+
+  async onSocketLogin(client: Socket) {
+    this.logger.log(`onSocketLogin ${client.id}`);
+    const key = await this.socketService.clientToKey(client);
+    if (!key) {
+      this.logger.log(`invalid token ${client.id}`);
+      client.disconnect();
+      return;
+    }
+
+    const room = await this.readMine(key);
+    if (!room) {
+      this.logger.log(`already joined room ${client.id}`);
+      client.disconnect();
+      return;
+    }
+
+    this.logger.log(`success login ${client.id}`);
+    this.logger.log(`join room ${room.id}`);
+    await client.join(room.id.toString());
+    await this.socketService.msgExcludeMe(client, 'roomUpdate', room.id);
+    return key;
+  }
+
+  async onSocketLogout(client: Socket) {
+    const socketId = client.id;
+    this.logger.log(`${socketId} disconnected`);
+
+    const key = await this.socketService.clientToKey(client);
+    if (!key) return;
+    const room = await this.readMine(key);
+    await this.socketService.msgExcludeMe(client, 'roomUpdate', room.id);
+    await this.exit(key);
+  }
+
+  async updateVideoStatus(client: Socket, videoParseDto: VideoParseDto) {
+    const key = await this.socketService.clientToKey(client);
+    const { vidName, vidUrl, vidEpisode } = videoParseDto;
+
+    await this.updateVideo(key, {
+      vidName,
+      vidUrl,
+      vidEpisode,
+    });
+
+    const room = await this.readMine(key);
+    await this.socketService.msgExcludeMe(client, 'roomUpdate', room.id);
   }
 }

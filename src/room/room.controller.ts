@@ -19,6 +19,7 @@ import { RoomCreateDto } from './dto/room-create.dto';
 import { RoomJoinDto } from './dto/room-join.dto';
 import { RoomRespDto } from './dto/room-resp.dto';
 import { Room } from './entities/room.entity';
+import { RoomVideoDto } from './dto/room-video.dto';
 
 @Controller('room')
 export class RoomController {
@@ -84,5 +85,12 @@ export class RoomController {
     const res = await this.roomService.read(id);
     if (!res) return 'null';
     return res;
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(AuthGuard('jwt'))
+  @Get('/updateVid')
+  async updateVid(@Req() req, @Body() body: RoomVideoDto): Promise<boolean> {
+    return await this.roomService.updateVideo(parseKey(req.user), body);
   }
 }

@@ -16,4 +16,16 @@ export class VideoParseDto {
   @IsBoolean()
   @IsNotEmpty()
   isPaused: boolean;
+
+  @IsString()
+  @IsNotEmpty()
+  vidName: string;
+
+  @IsNumber()
+  @IsNotEmpty()
+  vidEpisode: number;
+
+  @IsString()
+  @IsNotEmpty()
+  vidUrl: string;
 }
