@@ -208,7 +208,10 @@ export class RoomService {
 
     const key = await this.socketService.clientToKey(client);
     if (!key) return;
+
     const room = await this.readMine(key);
+    if (!room) return;
+
     await this.socketService.msgExcludeMe(client, 'roomUpdate', room.id);
     await this.exit(key);
   }
@@ -224,6 +227,8 @@ export class RoomService {
     });
 
     const room = await this.readMine(key);
+    if (!room) return;
+
     await this.socketService.msgExcludeMe(client, 'roomUpdate', room.id);
   }
 }

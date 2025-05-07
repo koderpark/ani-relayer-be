@@ -9,6 +9,8 @@ import { User } from './user/entities/user.entity';
 import { AuthModule } from './auth/auth.module';
 import { RoomModule } from './room/room.module';
 import { Room } from './room/entities/room.entity';
+import { PartyModule } from './party/party.module';
+import { PatyController } from './paty/paty.controller';
 
 @Module({
   imports: [
@@ -27,8 +29,9 @@ import { Room } from './room/entities/room.entity';
     UserModule,
     AuthModule,
     RoomModule,
+    PartyModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, PatyController],
   providers: [AppService],
 })
 export class AppModule {}
