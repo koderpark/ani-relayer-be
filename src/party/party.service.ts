@@ -5,6 +5,7 @@ import { RoomService } from 'src/room/room.service';
 import { SocketService } from 'src/socket/socket.service';
 import { UserKeyDto } from 'src/user/dto/user-key.dto';
 import { UserService } from 'src/user/user.service';
+import { PartyCreateDto } from './dto/party-create.dto';
 
 @Injectable()
 export class PartyService {
@@ -16,9 +17,23 @@ export class PartyService {
     private readonly socketService: SocketService,
   ) {}
 
-  async join(key: UserKeyDto, id: number, password?: number): Promise<Room> {
-    this.logger.log(`joinRoom ${id}`);
+  async create(key: UserKeyDto, body: PartyCreateDto): Promise<Room> {
+    this.logger.log(`create Party ${body.name}`);
 
+    const chk = await this.roomService.readMine(key);
+    if (chk) throw new HttpException('already_in_room', HttpStatus.BAD_REQUEST);
+
+    const fill = {
+      ownerId: key.userId,
+      cntViewer: 1,
+      name: body.name,
+      password: body.password,
+    };
+
+    return await this.roomService.create(key, fill);
+  }
+
+  async join(key: UserKeyDto, id: number, password?: number): Promise<Room> {
     const chk = await this.roomService.readMine(key);
     if (chk) throw new HttpException('already_in_room', HttpStatus.BAD_REQUEST);
 
@@ -29,7 +44,7 @@ export class PartyService {
     if ((await this.roomService.readPW(id)) != password)
       throw new HttpException('wrong_password', HttpStatus.BAD_REQUEST);
 
-    this.logger.log(`join room ${id}`);
+    this.logger.log(`join Party ${id}`);
 
     await this.roomService.update(key, { cntViewer: room.cntViewer + 1 });
     await this.userService.update(key, { roomId: id });

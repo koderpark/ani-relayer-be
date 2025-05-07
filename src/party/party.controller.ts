@@ -1,10 +1,11 @@
 import { Controller, Post, Req, Body, UseGuards, Get } from '@nestjs/common';
-import { RoomJoinDto } from 'src/room/dto/room-join.dto';
+import { PartyJoinDto } from 'src/party/dto/party-join.dto';
 import { PartyService } from './party.service';
 import { parseKey } from 'src/utils/parse';
 import { Room } from 'src/room/entities/room.entity';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth } from '@nestjs/swagger';
+import { PartyCreateDto } from './dto/party-create.dto';
 
 @Controller('party')
 export class PartyController {
@@ -12,8 +13,15 @@ export class PartyController {
 
   @ApiBearerAuth('access-token')
   @UseGuards(AuthGuard('jwt'))
+  @Post()
+  async create(@Req() req, @Body() body: PartyCreateDto): Promise<Room> {
+    return await this.partyService.create(parseKey(req.user), body);
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(AuthGuard('jwt'))
   @Post('/join')
-  async joinRoom(@Req() req, @Body() body: RoomJoinDto): Promise<Room> {
+  async join(@Req() req, @Body() body: PartyJoinDto): Promise<Room> {
     return await this.partyService.join(
       parseKey(req.user),
       body.id,

@@ -27,19 +27,8 @@ export class RoomService {
   async create(key: UserKeyDto, body: RoomCreateDto): Promise<Room> {
     this.logger.log(`create Room ${body.name}`);
 
-    const chk = await this.readMine(key);
-    if (chk) throw new HttpException('already_in_room', HttpStatus.BAD_REQUEST);
-
-    const fill = {
-      ownerId: key.userId,
-      cntViewer: 1,
-      name: body.name,
-      password: body.password,
-    };
-
-    const room = this.roomRepository.create(fill);
+    const room = this.roomRepository.create(body);
     await this.roomRepository.save(room);
-
     await this.userService.update(key, { roomId: room.id });
     return room;
   }

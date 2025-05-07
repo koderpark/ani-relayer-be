@@ -15,8 +15,6 @@ import { parseKey } from 'src/utils/parse';
 import { RoomQueryDto } from './dto/room-query.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth } from '@nestjs/swagger';
-import { RoomCreateDto } from './dto/room-create.dto';
-import { RoomJoinDto } from './dto/room-join.dto';
 import { RoomRespDto } from './dto/room-resp.dto';
 import { Room } from './entities/room.entity';
 import { RoomVideoDto } from './dto/room-video.dto';
@@ -24,13 +22,6 @@ import { RoomVideoDto } from './dto/room-video.dto';
 @Controller('room')
 export class RoomController {
   constructor(private readonly roomService: RoomService) {}
-
-  @ApiBearerAuth('access-token')
-  @UseGuards(AuthGuard('jwt'))
-  @Post()
-  async create(@Req() req, @Body() body: RoomCreateDto): Promise<Room> {
-    return await this.roomService.create(parseKey(req.user), body);
-  }
 
   @Get('list')
   async readAll(): Promise<Room[] | 'null'> {

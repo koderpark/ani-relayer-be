@@ -1,15 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
-export class RoomJoinDto {
+export class PartyCreateDto {
   @ApiProperty({
-    example: 1,
-    description: 'room id',
+    example: '야메나 사이! :tomato:',
+    description: "displayed room's name",
     required: true,
   })
   @IsNotEmpty()
-  @IsNumber()
-  id: number;
+  @IsString()
+  name: string;
 
   @ApiProperty({
     example: 1234,
