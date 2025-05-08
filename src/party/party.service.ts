@@ -90,6 +90,14 @@ export class PartyService {
     await this.userService.update(key, { roomId: -1 });
 
     if (room.ownerId == user.userId) {
+      const peers = await this.peers(key);
+      if (peers) {
+        for (const peer of peers) {
+          await this.userService.update({ userId: peer.id }, { roomId: -1 });
+          await this.socketService.propagate('roomUpdate', room.id);
+        }
+      }
+
       await this.roomService.remove(room.id);
     } else {
       await this.roomService.update(key, { cntViewer: room.cntViewer - 1 });

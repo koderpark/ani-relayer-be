@@ -23,6 +23,10 @@ export class SocketService {
     client.to(roomId.toString()).emit(eventName, body);
   }
 
+  async propagate(eventName: string, roomId: number, body?: any) {
+    this.server.to(roomId.toString()).emit(eventName, body);
+  }
+
   async msgInRoom(client: Socket, roomId: number) {
     this.server.to(roomId.toString()).emit('inRoom', roomId);
   }
