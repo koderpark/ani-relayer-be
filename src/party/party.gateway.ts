@@ -14,7 +14,7 @@ import { VideoParseDto } from 'src/socket/dto/video-parse.dto';
 import { PartyService } from './party.service';
 import { RoomService } from 'src/room/room.service';
 
-@WebSocketGateway(8081, { cors: { origin: '*' } })
+@WebSocketGateway(8081, { namespace: 'party', cors: { origin: '*' } })
 export class PartyGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {

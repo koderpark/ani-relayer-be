@@ -27,7 +27,6 @@ export class PartyService {
 
     const fill: RoomCreateDto = {
       ownerId: key.userId,
-      cntViewer: 1,
       name: body.name,
       password: body.password,
     };
@@ -37,48 +36,18 @@ export class PartyService {
 
   async join(key: UserKeyDto, id: number, password?: number): Promise<Room> {
     const chk = await this.roomService.readMine(key);
-    if (chk) throw new HttpException('already_in_room', HttpStatus.BAD_REQUEST);
-
     const room = await this.roomService.read(id);
+
+    if (chk) throw new HttpException('already_in_room', HttpStatus.BAD_REQUEST);
     if (!room)
       throw new HttpException('room_not_found', HttpStatus.BAD_REQUEST);
-
-    if ((await this.roomService.readPW(id)) != password)
+    if (!(await this.roomService.chkPW(id, password)))
       throw new HttpException('wrong_password', HttpStatus.BAD_REQUEST);
 
     this.logger.log(`join Party ${id}`);
+
     await this.userService.update(key, { roomId: id });
-
     return await this.roomService.readMine(key);
-  }
-
-  async peers(
-    key: UserKeyDto,
-  ): Promise<
-    { id: number; name: string; isOwner: boolean; isMe: boolean }[] | false
-  > {
-    this.logger.log(`peers`);
-
-    const user = await this.userService.read(key);
-    if (user.roomId == -1) return false;
-
-    const room = await this.roomService.read(user.roomId);
-    if (!room) {
-      this.logger.log(`room_not_found ${user.roomId}`);
-      await this.exit(key);
-      throw new HttpException('room_not_found', HttpStatus.BAD_REQUEST);
-    }
-
-    const member = await this.userService.listMember(room.id);
-    const peers = member.map((member) => {
-      return {
-        id: member.userId,
-        name: member.loginId,
-        isOwner: member.userId == room.ownerId,
-        isMe: member.userId == key.userId,
-      };
-    });
-    return peers;
   }
 
   async exit(key: UserKeyDto) {
@@ -100,7 +69,11 @@ export class PartyService {
         }
       }
 
-      await this.socketService.msgInRoom(room.id, 'roomUpdate');
+      await this.socketService.msgInRoom(
+        room.id,
+        'roomUpdate',
+        await this.roomService.roomStatus(key),
+      );
       await this.roomService.remove(room.id);
     }
   }
@@ -124,7 +97,11 @@ export class PartyService {
     this.logger.log(`success login ${client.id}`);
     this.logger.log(`join room ${room.id}`);
     await client.join(room.id.toString());
-    await this.socketService.msgExcludeMe(client, 'roomUpdate');
+    await this.socketService.msgInRoom(
+      room.id,
+      'roomUpdate',
+      await this.roomService.roomStatus(key),
+    );
     return key;
   }
 
@@ -138,6 +115,11 @@ export class PartyService {
     const room = await this.roomService.readMine(key);
 
     await this.exit(key);
-    if (room) await this.socketService.msgExcludeMe(client, 'roomUpdate');
+    if (room)
+      await this.socketService.msgInRoom(
+        room.id,
+        'roomUpdate',
+        await this.roomService.roomStatus(key),
+      );
   }
 }

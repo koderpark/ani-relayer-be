@@ -1,17 +1,13 @@
 import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { RoomCreateDto } from './dto/room-create.dto';
-import { RoomUpdateDto } from './dto/room-update.dto';
 import { Room } from './entities/room.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { RoomQueryDto } from './dto/room-query.dto';
 import { UserKeyDto } from 'src/user/dto/user-key.dto';
 import { UserService } from 'src/user/user.service';
-import { RoomRespDto } from './dto/room-resp.dto';
-import { RoomVideoDto } from './dto/room-video.dto';
-import { SocketService } from 'src/socket/socket.service';
-import { Socket } from 'socket.io';
-import { VideoParseDto } from 'src/socket/dto/video-parse.dto';
+import { RoomUpdateDto } from './dto/room-update.dto';
+import { RoomStatusDto } from './dto/room-resp.dto';
+import { RoomPeerDto } from './dto/room-peer.dto';
 
 @Injectable()
 export class RoomService {
@@ -40,20 +36,6 @@ export class RoomService {
     return await this.roomRepository.find();
   }
 
-  async readPW(id: number): Promise<number> {
-    const chk = await this.read(id);
-    if (!chk) throw new HttpException('not_in_room', HttpStatus.BAD_REQUEST);
-
-    const room = await this.roomRepository.findOne({
-      where: { id: chk.id },
-      select: ['id', 'password'],
-    });
-    if (!room)
-      throw new HttpException('room_not_found', HttpStatus.BAD_REQUEST);
-
-    return room.password;
-  }
-
   async readMine(key: UserKeyDto): Promise<Room> {
     const user = await this.userService.read(key);
     if (user.roomId == -1) return null;
@@ -76,6 +58,55 @@ export class RoomService {
 
     await this.roomRepository.delete(id);
     return true;
+  }
+
+  async chkPW(id: number, password?: number): Promise<boolean> {
+    const room = await this.roomRepository.findOne({
+      where: { id },
+      select: ['id', 'password'],
+    });
+
+    if (!room) return false;
+    if (password && room.password != password) return false;
+    if (!password && room.password) return false;
+
+    return true;
+  }
+
+  async peers(key: UserKeyDto): Promise<RoomPeerDto[]> {
+    this.logger.log(`peers`);
+
+    const room = await this.readMine(key);
+    if (!room) return [];
+
+    const member = await this.userService.listMember(room.id);
+    const peers = member.map((member) => {
+      return {
+        id: member.userId,
+        name: member.loginId,
+        isOwner: member.userId == room.ownerId,
+        isMe: member.userId == key.userId,
+      };
+    });
+    return peers;
+  }
+
+  async roomStatus(key: UserKeyDto): Promise<RoomStatusDto> {
+    const room = await this.readMine(key);
+    if (!room) return null;
+
+    return {
+      id: room.id,
+      cntViewer: await this.userService.countMember(room.id),
+      isOwner: room.ownerId == key.userId,
+      name: room.name,
+      peers: await this.peers(key),
+    };
+  }
+
+  async removeAll(): Promise<boolean> {
+    const res = await this.roomRepository.delete({});
+    return res.affected ? true : false;
   }
 
   // async updateVideo(key: UserKeyDto, video: RoomVideoDto) {

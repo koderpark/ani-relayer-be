@@ -11,6 +11,9 @@ export class Room {
   @Column()
   name: string;
 
+  @Column({ default: null, select: false })
+  password?: number;
+
   @Column({ default: '' })
   vidName: string;
 
@@ -19,7 +22,4 @@ export class Room {
 
   @Column({ default: -1 })
   vidEpisode: number;
-
-  @Column({ default: null, select: false })
-  password?: number;
 }

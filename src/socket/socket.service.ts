@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Socket, Server } from 'socket.io';
+import { Socket, Server, Namespace } from 'socket.io';
 import { RoomService } from 'src/room/room.service';
 import { UserKeyDto } from 'src/user/dto/user-key.dto';
 import { UserService } from 'src/user/user.service';

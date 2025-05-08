@@ -6,14 +6,18 @@ import { Room } from 'src/room/entities/room.entity';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { PartyCreateDto } from './dto/party-create.dto';
+import { RoomService } from 'src/room/room.service';
 
 @Controller('party')
 export class PartyController {
-  constructor(private readonly partyService: PartyService) {}
+  constructor(
+    private readonly partyService: PartyService,
+    private readonly roomService: RoomService,
+  ) {}
 
   @ApiBearerAuth('access-token')
   @UseGuards(AuthGuard('jwt'))
-  @Post()
+  @Post('/create')
   async create(@Req() req, @Body() body: PartyCreateDto): Promise<Room> {
     return await this.partyService.create(parseKey(req.user), body);
   }
@@ -45,7 +49,7 @@ export class PartyController {
   ): Promise<
     { id: number; name: string; isOwner: boolean; isMe: boolean }[] | 'null'
   > {
-    const res = await this.partyService.peers(parseKey(req.user));
+    const res = await this.roomService.peers(parseKey(req.user));
     if (!res) return 'null';
     return res;
   }
