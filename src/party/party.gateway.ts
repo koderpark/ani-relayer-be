@@ -26,6 +26,10 @@ export class PartyGateway
 
   private logger: Logger = new Logger('websocket');
 
+  afterInit(server: Server) {
+    this.logger.log('웹소켓 서버 초기화 ✅');
+  }
+
   @SubscribeMessage('events')
   handleEvent(
     @MessageBody() data: string,
@@ -36,18 +40,14 @@ export class PartyGateway
     // return data;
   }
 
-  afterInit(server: Server) {
-    this.logger.log('웹소켓 서버 초기화 ✅');
-    this.socketService.server = server;
-  }
-
-  @SubscribeMessage('updateVid')
-  handleUpdateVid(
-    @MessageBody() videoParseDto: VideoParseDto,
-    @ConnectedSocket() client: Socket,
-  ): void {
-    this.roomService.updateVideoStatus(client, videoParseDto);
-  }
+  // @SubscribeMessage('updateVid')
+  // handleUpdateVid(
+  //   @MessageBody() videoParseDto: VideoParseDto,
+  //   @ConnectedSocket() client: Socket,
+  // ): void {
+  //   this.logger.log(`updateVid`);
+  //   this.roomService.updateVideoStatus(client, videoParseDto);
+  // }
 
   async handleConnection(client: Socket): Promise<void> {
     await this.partyService.onSocketLogin(client);

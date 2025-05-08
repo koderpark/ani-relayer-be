@@ -45,11 +45,4 @@ export class RoomController {
     if (!res) return 'null';
     return res;
   }
-
-  @ApiBearerAuth('access-token')
-  @UseGuards(AuthGuard('jwt'))
-  @Get('/updateVid')
-  async updateVid(@Req() req, @Body() body: RoomVideoDto): Promise<boolean> {
-    return await this.roomService.updateVideo(parseKey(req.user), body);
-  }
 }

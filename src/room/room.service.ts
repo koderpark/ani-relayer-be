@@ -21,7 +21,6 @@ export class RoomService {
     @InjectRepository(Room)
     private roomRepository: Repository<Room>,
     private readonly userService: UserService,
-    private readonly socketService: SocketService,
   ) {}
 
   async create(key: UserKeyDto, body: RoomCreateDto): Promise<Room> {
@@ -34,17 +33,14 @@ export class RoomService {
   }
 
   async read(id: number): Promise<Room> {
-    this.logger.log(`read Room ${id}`);
     return await this.roomRepository.findOneBy({ id });
   }
 
   async readAll(): Promise<Room[]> {
-    this.logger.log(`readAll`);
     return await this.roomRepository.find();
   }
 
   async readPW(id: number): Promise<number> {
-    this.logger.log(`readPW`);
     const chk = await this.read(id);
     if (!chk) throw new HttpException('not_in_room', HttpStatus.BAD_REQUEST);
 
@@ -59,15 +55,13 @@ export class RoomService {
   }
 
   async readMine(key: UserKeyDto): Promise<Room> {
-    this.logger.log(`readMine`);
-
     const user = await this.userService.read(key);
     if (user.roomId == -1) return null;
 
     return await this.read(user.roomId);
   }
 
-  async update(key: UserKeyDto, data: RoomUpdateDto): Promise<boolean> {
+  async updateMine(key: UserKeyDto, data: RoomUpdateDto): Promise<boolean> {
     const room = await this.readMine(key);
     if (!room) return false;
 
@@ -78,32 +72,34 @@ export class RoomService {
   async remove(id: number): Promise<boolean> {
     const room = await this.read(id);
     if (!room) return false;
+    if ((await this.userService.countMember(id)) > 0) return false;
 
     await this.roomRepository.delete(id);
     return true;
   }
 
-  async updateVideo(key: UserKeyDto, video: RoomVideoDto) {
-    const room = await this.readMine(key);
-    if (!room) throw new HttpException('not_in_room', HttpStatus.BAD_REQUEST);
+  // async updateVideo(key: UserKeyDto, video: RoomVideoDto) {
+  //   const room = await this.readMine(key);
+  //   if (!room) throw new HttpException('not_in_room', HttpStatus.BAD_REQUEST);
 
-    await this.roomRepository.update(room.id, video);
-    return true;
-  }
+  //   console.log(video);
+  //   // await this.roomRepository.update(room.id, video);
+  //   return true;
+  // }
 
-  async updateVideoStatus(client: Socket, videoParseDto: VideoParseDto) {
-    const key = await this.socketService.clientToKey(client);
-    const { vidName, vidUrl, vidEpisode } = videoParseDto;
+  // async updateVideoStatus(client: Socket, videoParseDto: VideoParseDto) {
+  //   const key = await this.socketService.clientToKey(client);
+  //   const { vidName, vidUrl, vidEpisode } = videoParseDto;
 
-    await this.updateVideo(key, {
-      vidName,
-      vidUrl,
-      vidEpisode,
-    });
+  //   await this.updateVideo(key, {
+  //     vidName,
+  //     vidUrl,
+  //     vidEpisode,
+  //   });
 
-    const room = await this.readMine(key);
-    if (!room) return;
+  //   const room = await this.readMine(key);
+  //   if (!room) return;
 
-    await this.socketService.msgExcludeMe(client, 'roomUpdate', room.id);
-  }
+  //   await this.socketService.msgExcludeMe(client, 'roomUpdate', room.id);
+  // }
 }

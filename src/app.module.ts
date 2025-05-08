@@ -10,6 +10,7 @@ import { AuthModule } from './auth/auth.module';
 import { RoomModule } from './room/room.module';
 import { Room } from './room/entities/room.entity';
 import { PartyModule } from './party/party.module';
+import { VideoModule } from './video/video.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { PartyModule } from './party/party.module';
     AuthModule,
     RoomModule,
     PartyModule,
+    VideoModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -8,9 +8,6 @@ export class Room {
   @Column()
   ownerId: number;
 
-  @Column({ default: 1 })
-  cntViewer: number;
-
   @Column()
   name: string;
 

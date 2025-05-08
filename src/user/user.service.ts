@@ -52,7 +52,12 @@ export class UserService {
     return false;
   }
 
-  async roomMembers(roomId: number): Promise<User[]> {
+  async listMember(roomId: number): Promise<User[]> {
     return await this.userRepository.findBy({ roomId });
+  }
+
+  async countMember(roomId: number): Promise<number> {
+    const cnt = await this.userRepository.countBy({ roomId });
+    return cnt;
   }
 }
