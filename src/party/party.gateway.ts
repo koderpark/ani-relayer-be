@@ -10,11 +10,12 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { SocketService } from 'src/socket/socket.service';
-import { VideoParseDto } from 'src/socket/dto/video-parse.dto';
 import { PartyService } from './party.service';
 import { RoomService } from 'src/room/room.service';
+import { Video } from 'src/room/entities/room.entity';
+import { VideoService } from 'src/video/video.service';
 
-@WebSocketGateway(8081, { namespace: 'party', cors: { origin: '*' } })
+@WebSocketGateway(8081, { cors: { origin: '*' } })
 export class PartyGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
@@ -22,12 +23,14 @@ export class PartyGateway
     private readonly socketService: SocketService,
     private readonly partyService: PartyService,
     private readonly roomService: RoomService,
+    private readonly videoService: VideoService,
   ) {}
 
   private logger: Logger = new Logger('websocket');
 
   afterInit(server: Server) {
     this.logger.log('웹소켓 서버 초기화 ✅');
+    this.socketService.server = server;
   }
 
   @SubscribeMessage('events')
@@ -38,6 +41,15 @@ export class PartyGateway
     this.logger.log(`${client.id} sended ${data}`);
     this.socketService.server.emit('event', data);
     // return data;
+  }
+
+  @SubscribeMessage('video')
+  async handleVideo(
+    @MessageBody() video: Video,
+    @ConnectedSocket() client: Socket,
+  ): Promise<void> {
+    this.logger.log(`${client.id} sended ${video}`);
+    this.videoService.update(client, video);
   }
 
   // @SubscribeMessage('updateVid')

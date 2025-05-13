@@ -1,9 +1,18 @@
-import { Entity, Column, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  Unique,
+  UpdateDateColumn,
+} from 'typeorm';
 
 @Entity()
 export class Room {
   @PrimaryGeneratedColumn() // PK
   id: number;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 
   @Column()
   ownerId: number;
@@ -14,12 +23,28 @@ export class Room {
   @Column({ default: null, select: false })
   password?: number;
 
-  @Column({ default: '' })
-  vidName: string;
+  @Column({ default: null })
+  vidTitle: string;
 
-  @Column({ default: '' })
-  vidUrl: string;
+  @Column({ default: null })
+  vidEpisode: string;
 
-  @Column({ default: -1 })
-  vidEpisode: number;
+  @Column({ type: 'json', default: null })
+  vidData: VidData;
+}
+
+export interface VidData {
+  url: string;
+  speed: number;
+  time: number;
+  isPaused: boolean;
+}
+
+export interface Video {
+  title: string;
+  episode: string;
+  url: string;
+  speed: number;
+  time: number;
+  isPaused: boolean;
 }

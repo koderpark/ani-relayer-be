@@ -6,7 +6,7 @@ import { Repository } from 'typeorm';
 import { UserKeyDto } from 'src/user/dto/user-key.dto';
 import { UserService } from 'src/user/user.service';
 import { RoomUpdateDto } from './dto/room-update.dto';
-import { RoomStatusDto } from './dto/room-resp.dto';
+import { RoomStatusDto } from './dto/room-status.dto';
 import { RoomPeerDto } from './dto/room-peer.dto';
 
 @Injectable()
@@ -51,12 +51,14 @@ export class RoomService {
     return res.affected ? true : false;
   }
 
-  async remove(id: number): Promise<boolean> {
-    const room = await this.read(id);
-    if (!room) return false;
-    if ((await this.userService.countMember(id)) > 0) return false;
+  async remove(key: UserKeyDto): Promise<boolean> {
+    const room = await this.readMine(key);
 
-    await this.roomRepository.delete(id);
+    if (!room) return false;
+    if (room.ownerId != key.userId) return false;
+    if ((await this.userService.countMember(room.id)) > 0) return false;
+
+    await this.roomRepository.delete(room.id);
     return true;
   }
 

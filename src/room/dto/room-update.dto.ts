@@ -1,4 +1,11 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsObject,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+import { VidData } from '../entities/room.entity';
 
 export class RoomUpdateDto {
   @IsOptional()
@@ -7,17 +14,17 @@ export class RoomUpdateDto {
 
   @IsOptional()
   @IsString()
-  vidName?: string;
+  vidTitle?: string;
 
   @IsOptional()
   @IsString()
-  vidUrl?: string;
-
-  @IsOptional()
-  @IsNumber()
-  vidEpisode?: number;
+  vidEpisode?: string;
 
   @IsOptional()
   @IsNumber()
   password?: number;
+
+  @IsOptional()
+  @IsObject()
+  vidData?: VidData;
 }

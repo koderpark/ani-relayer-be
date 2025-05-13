@@ -14,7 +14,7 @@ import { parseKey } from 'src/utils/parse';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { Room } from './entities/room.entity';
-import { RoomStatusDto } from './dto/room-resp.dto';
+import { RoomStatusDto } from './dto/room-status.dto';
 
 @Controller('room')
 export class RoomController {

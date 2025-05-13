@@ -69,17 +69,16 @@ export class PartyService {
         }
       }
 
+      await this.roomService.remove(key);
       await this.socketService.msgInRoom(
         room.id,
         'roomUpdate',
         await this.roomService.roomStatus(key),
       );
-      await this.roomService.remove(room.id);
     }
   }
 
   async onSocketLogin(client: Socket) {
-    this.logger.log(`onSocketLogin ${client.id}`);
     const key = await this.socketService.clientToKey(client);
     if (!key) {
       this.logger.log(`invalid token ${client.id}`);
