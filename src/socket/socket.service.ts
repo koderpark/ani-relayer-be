@@ -1,11 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Socket, Server, Namespace } from 'socket.io';
 import { RoomService } from 'src/room/room.service';
-import { UserKeyDto } from 'src/user/dto/user-key.dto';
 import { UserService } from 'src/user/user.service';
-import { AuthService } from 'src/auth/auth.service';
-import { parseKey } from 'src/utils/parse';
-import { VideoParseDto } from './dto/video-parse.dto';
 import { WebSocketServer } from '@nestjs/websockets';
 @Injectable()
 export class SocketService {
@@ -14,10 +10,7 @@ export class SocketService {
   @WebSocketServer()
   server: Server;
 
-  constructor(
-    private readonly authService: AuthService,
-    private readonly userService: UserService,
-  ) {}
+  constructor(private readonly userService: UserService) {}
 
   async msgExcludeMe(client: Socket, eventName: string, body?: any) {
     const key = await this.clientToKey(client);

@@ -3,7 +3,6 @@ import { Server, Socket } from 'socket.io';
 import { Room } from 'src/room/entities/room.entity';
 import { RoomService } from 'src/room/room.service';
 import { SocketService } from 'src/socket/socket.service';
-import { UserKeyDto } from 'src/user/dto/user-key.dto';
 import { UserService } from 'src/user/user.service';
 import { PartyCreateDto } from './dto/party-create.dto';
 import { WebSocketServer } from '@nestjs/websockets';

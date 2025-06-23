@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { Socket } from 'socket.io';
 import { VidData, Video } from 'src/room/entities/room.entity';
 import { RoomService } from 'src/room/room.service';
-import { UserKeyDto } from 'src/user/dto/user-key.dto';
 import { SocketService } from 'src/socket/socket.service';
 
 @Injectable()

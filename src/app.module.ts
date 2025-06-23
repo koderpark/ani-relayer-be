@@ -6,7 +6,6 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserModule } from './user/user.module';
 import { User } from './user/entities/user.entity';
-import { AuthModule } from './auth/auth.module';
 import { RoomModule } from './room/room.module';
 import { Room } from './room/entities/room.entity';
 import { PartyModule } from './party/party.module';
@@ -27,7 +26,6 @@ import { VideoModule } from './video/video.module';
     }),
     SocketModule,
     UserModule,
-    AuthModule,
     RoomModule,
     PartyModule,
     VideoModule,

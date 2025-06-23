@@ -1,7 +1,6 @@
 import { Controller, Post, Req, Body, UseGuards, Get } from '@nestjs/common';
 import { PartyJoinDto } from 'src/party/dto/party-join.dto';
 import { PartyService } from './party.service';
-import { parseKey } from 'src/utils/parse';
 import { Room } from 'src/room/entities/room.entity';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth } from '@nestjs/swagger';

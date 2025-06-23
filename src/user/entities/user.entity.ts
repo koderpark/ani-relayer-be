@@ -6,10 +6,7 @@ export class User {
   userId: number;
 
   @Column()
-  loginId: string;
-
-  @Column({ select: false })
-  password: string;
+  socketId: string;
 
   @Column({ default: -1 })
   roomId: number;
