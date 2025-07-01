@@ -18,7 +18,7 @@ export class PartyController {
   @UseGuards(AuthGuard('jwt'))
   @Post('/create')
   async create(@Req() req, @Body() body: PartyCreateDto): Promise<Room> {
-    return await this.partyService.create(parseKey(req.user), body);
+    return await this.partyService.create(req.user.socketId, body);
   }
 
   @ApiBearerAuth('access-token')
@@ -26,7 +26,7 @@ export class PartyController {
   @Post('/join')
   async join(@Req() req, @Body() body: PartyJoinDto): Promise<Room> {
     return await this.partyService.join(
-      parseKey(req.user),
+      req.user.socketId,
       body.id,
       body.password,
     );
@@ -36,7 +36,7 @@ export class PartyController {
   @UseGuards(AuthGuard('jwt'))
   @Post('/exit')
   async exit(@Req() req): Promise<boolean> {
-    await this.partyService.exit(parseKey(req.user));
+    await this.partyService.exit(req.user.socketId);
     return true;
   }
 
@@ -45,10 +45,8 @@ export class PartyController {
   @Get('/peers')
   async peers(
     @Req() req,
-  ): Promise<
-    { id: number; name: string; isOwner: boolean; isMe: boolean }[] | 'null'
-  > {
-    const res = await this.roomService.peers(parseKey(req.user));
+  ): Promise<{ id: number; isOwner: boolean; isMe: boolean }[] | 'null'> {
+    const res = await this.roomService.peers(req.user.socketId);
     if (!res) return 'null';
     return res;
   }

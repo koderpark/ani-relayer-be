@@ -10,7 +10,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { RoomService } from './room.service';
-import { parseKey } from 'src/utils/parse';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { Room } from './entities/room.entity';
@@ -31,7 +30,7 @@ export class RoomController {
   @UseGuards(AuthGuard('jwt'))
   @Get('/my')
   async myRoom(@Req() req): Promise<Room | 'null'> {
-    const res = await this.roomService.readMine(parseKey(req.user));
+    const res = await this.roomService.readMine(req.user.socketId);
     if (!res) return 'null';
     return res;
   }
@@ -47,7 +46,7 @@ export class RoomController {
   @UseGuards(AuthGuard('jwt'))
   @Get('status')
   async status(@Req() req): Promise<RoomStatusDto> {
-    const res = await this.roomService.roomStatus(parseKey(req.user));
+    const res = await this.roomService.roomStatus(req.user.socketId);
     if (!res) return null;
     return res;
   }

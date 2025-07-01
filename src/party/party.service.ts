@@ -18,23 +18,25 @@ export class PartyService {
     private readonly socketService: SocketService,
   ) {}
 
-  async create(key: UserKeyDto, body: PartyCreateDto): Promise<Room> {
+  async create(socketId: string, body: PartyCreateDto): Promise<Room> {
     this.logger.log(`create Party ${body.name}`);
 
-    const chk = await this.roomService.readMine(key);
-    if (chk) throw new HttpException('already_in_room', HttpStatus.BAD_REQUEST);
+    const user = await this.userService.read(socketId);
+    const room = await this.roomService.readMine(socketId);
+    if (room)
+      throw new HttpException('already_in_room', HttpStatus.BAD_REQUEST);
 
     const fill: RoomCreateDto = {
-      ownerId: key.userId,
+      ownerId: user.userId,
       name: body.name,
       password: body.password,
     };
 
-    return await this.roomService.create(key, fill);
+    return await this.roomService.create(socketId, fill);
   }
 
-  async join(key: UserKeyDto, id: number, password?: number): Promise<Room> {
-    const chk = await this.roomService.readMine(key);
+  async join(socketId: string, id: number, password?: number): Promise<Room> {
+    const chk = await this.roomService.readMine(socketId);
     const room = await this.roomService.read(id);
 
     if (chk) throw new HttpException('already_in_room', HttpStatus.BAD_REQUEST);
@@ -45,47 +47,44 @@ export class PartyService {
 
     this.logger.log(`join Party ${id}`);
 
-    await this.userService.update(key, { roomId: id });
-    return await this.roomService.readMine(key);
+    await this.userService.update(socketId, { roomId: id });
+    return await this.roomService.readMine(socketId);
   }
 
-  async exit(key: UserKeyDto) {
+  async exit(socketId: string) {
     this.logger.log(`exit Room`);
-    const user = await this.userService.read(key);
-    await this.userService.update(key, { roomId: -1 });
+    const user = await this.userService.read(socketId);
+    await this.userService.update(socketId, { roomId: -1 });
 
-    const room = await this.roomService.readMine(key);
+    const room = await this.roomService.readMine(socketId);
     if (!room) return;
 
     if (room.ownerId == user.userId) {
       const member = await this.userService.listMember(room.id);
       if (member) {
         for (const peer of member) {
-          await this.userService.update(
-            { userId: peer.userId },
-            { roomId: -1 },
-          );
+          await this.userService.update(peer.socketId, { roomId: -1 });
         }
       }
 
-      await this.roomService.remove(key);
+      await this.roomService.remove(socketId);
       await this.socketService.msgInRoom(
         room.id,
         'roomUpdate',
-        await this.roomService.roomStatus(key),
+        await this.roomService.roomStatus(socketId),
       );
     }
   }
 
   async onSocketLogin(client: Socket) {
-    const key = await this.socketService.clientToKey(client);
-    if (!key) {
+    const user = await this.userService.read(client.id);
+    if (!user) {
       this.logger.log(`invalid token ${client.id}`);
       client.disconnect();
       return;
     }
 
-    const room = await this.roomService.readMine(key);
+    const room = await this.roomService.readMine(client.id);
     if (!room) {
       this.logger.log(`already joined room ${client.id}`);
       client.disconnect();
@@ -98,26 +97,26 @@ export class PartyService {
     await this.socketService.msgInRoom(
       room.id,
       'roomUpdate',
-      await this.roomService.roomStatus(key),
+      await this.roomService.roomStatus(client.id),
     );
-    return key;
+    return client.id;
   }
 
   async onSocketLogout(client: Socket) {
     const socketId = client.id;
     this.logger.log(`${socketId} disconnected`);
 
-    const key = await this.socketService.clientToKey(client);
-    if (!key) return;
+    const user = await this.userService.read(client.id);
+    if (!user) return;
 
-    const room = await this.roomService.readMine(key);
+    const room = await this.roomService.readMine(client.id);
 
-    await this.exit(key);
+    await this.exit(client.id);
     if (room)
       await this.socketService.msgInRoom(
         room.id,
         'roomUpdate',
-        await this.roomService.roomStatus(key),
+        await this.roomService.roomStatus(client.id),
       );
   }
 }

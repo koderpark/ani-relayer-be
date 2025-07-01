@@ -10,7 +10,7 @@ export class ApiStrategy extends PassportStrategy(Strategy, 'api') {
   }
 
   async validate(req: any) {
-    const user = await this.userService.read(req.headers.socketId);
+    const user = await this.userService.read(req.headers.auth);
     if (!user) throw new UnauthorizedException();
     return user;
   }
