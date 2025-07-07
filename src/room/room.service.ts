@@ -1,12 +1,14 @@
-import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
-import { RoomCreateDto } from './dto/room-create.dto';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { Room } from './entities/room.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UserService } from 'src/user/user.service';
-import { RoomUpdateDto } from './dto/room-update.dto';
-import { RoomStatusDto } from './dto/room-status.dto';
-import { RoomPeerDto } from './dto/room-peer.dto';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class RoomService {
@@ -18,48 +20,9 @@ export class RoomService {
     private readonly userService: UserService,
   ) {}
 
-  async create(socketId: string, body: RoomCreateDto): Promise<Room> {
-    this.logger.log(`create Room ${body.name}`);
-
-    const room = this.roomRepository.create(body);
-    await this.roomRepository.save(room);
-    await this.userService.update(socketId, { roomId: room.id });
-    return room;
-  }
-
-  async read(id: number): Promise<Room> {
-    return await this.roomRepository.findOneBy({ id });
-  }
-
-  async readAll(): Promise<Room[]> {
-    return await this.roomRepository.find();
-  }
-
-  async readMine(socketId: string): Promise<Room> {
-    const user = await this.userService.read(socketId);
-    if (user.roomId == -1) return null;
-
-    return await this.read(user.roomId);
-  }
-
-  async updateMine(socketId: string, data: RoomUpdateDto): Promise<boolean> {
-    const room = await this.readMine(socketId);
-    if (!room) return false;
-
-    const res = await this.roomRepository.update(room.id, data);
-    return res.affected ? true : false;
-  }
-
-  async remove(socketId: string): Promise<boolean> {
-    const room = await this.readMine(socketId);
-
-    const user = await this.userService.read(socketId);
-    if (!room) return false;
-    if (room.ownerId != user.userId) return false;
-    if ((await this.userService.countMember(room.id)) > 0) return false;
-
-    await this.roomRepository.delete(room.id);
-    return true;
+  async chkHost(socketId: string): Promise<boolean> {
+    const user = await this.userService.read(socketId, ['host']);
+    return user.host ? true : false;
   }
 
   async chkPW(id: number, password?: number): Promise<boolean> {
@@ -69,42 +32,59 @@ export class RoomService {
     });
 
     if (!room) return false;
-    if (password && room.password != password) return false;
-    if (!password && room.password) return false;
-
+    if (password !== room.password) return false;
     return true;
   }
 
-  async peers(socketId: string): Promise<RoomPeerDto[]> {
-    this.logger.log(`peers`);
+  async create(
+    socketId: string,
+    name: string,
+    password?: number,
+  ): Promise<Room> {
+    this.logger.log(`create Room ${name}`);
 
-    const room = await this.readMine(socketId);
-    if (!room) return [];
-
-    const user = await this.userService.read(socketId);
-    const member = await this.userService.listMember(room.id);
-    const peers = member.map((member) => {
-      return {
-        id: member.userId,
-        isOwner: member.userId == room.ownerId,
-        isMe: member.userId == user.userId,
-      };
+    const owner = await this.userService.read(socketId);
+    const room = this.roomRepository.create({
+      name,
+      password,
+      owner,
+      users: [owner],
     });
-    return peers;
+    await this.roomRepository.save(room);
+    await this.userService.update(socketId, { host: room, room: room });
+    return room;
   }
 
-  async roomStatus(socketId: string): Promise<RoomStatusDto> {
-    const room = await this.readMine(socketId);
-    if (!room) return null;
+  async read(id: number, relations: string[] = []): Promise<Room> {
+    const room = await this.roomRepository.findOne({
+      where: { id },
+      relations,
+    });
 
-    const user = await this.userService.read(socketId);
-    return {
-      id: room.id,
-      cntViewer: await this.userService.countMember(room.id),
-      isOwner: room.ownerId == user.userId,
-      name: room.name,
-      peers: await this.peers(socketId),
-    };
+    if (!room) throw new NotFoundException();
+    return room;
+  }
+
+  async readMine(socketId: string): Promise<Room> {
+    const user = await this.userService.read(socketId, ['room']);
+    if (!user.room) throw new NotFoundException();
+    return user.room;
+  }
+
+  async update(socketId: string, data: Partial<Room>): Promise<boolean> {
+    const user = await this.userService.read(socketId, ['room', 'host']);
+    if (!user.host) throw new HttpException('not_host', HttpStatus.FORBIDDEN);
+
+    const res = await this.roomRepository.update(user.host.id, data);
+    return res.affected ? true : false;
+  }
+
+  async remove(socketId: string): Promise<boolean> {
+    const user = await this.userService.read(socketId, ['room', 'host']);
+    if (!user.host) throw new HttpException('not_host', HttpStatus.FORBIDDEN);
+
+    await this.roomRepository.delete(user.host.id);
+    return true;
   }
 
   async removeAll(): Promise<boolean> {

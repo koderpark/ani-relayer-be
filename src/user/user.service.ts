@@ -18,8 +18,11 @@ export class UserService {
     return user;
   }
 
-  async read(socketId: string): Promise<User> {
-    const user = await this.userRepository.findOneBy({ socketId });
+  async read(socketId: string, relations: string[] = []): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: { socketId },
+      relations,
+    });
     if (!user) return await this.create(socketId);
     return user;
   }
@@ -32,14 +35,5 @@ export class UserService {
   async remove(socketId: string): Promise<boolean> {
     const res = await this.userRepository.delete({ socketId });
     return res.affected ? true : false;
-  }
-
-  async listMember(roomId: number): Promise<User[]> {
-    return await this.userRepository.findBy({ room: { id: roomId } });
-  }
-
-  async countMember(roomId: number): Promise<number> {
-    const cnt = await this.userRepository.countBy({ room: { id: roomId } });
-    return cnt;
   }
 }

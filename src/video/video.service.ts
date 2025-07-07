@@ -10,29 +10,26 @@ export class VideoService {
   constructor(
     private readonly roomService: RoomService,
     private readonly userService: UserService,
-    private readonly socketService: SocketService,
   ) {}
 
-  async update(client: Socket, video: Video): Promise<boolean> {
-    const user = await this.userService.read(client.id);
-    const room = await this.roomService.readMine(client.id);
-    if (!room) return false;
+  // async update(client: Socket, video: Video): Promise<boolean> {
+  //   const user = await this.userService.read(client.id);
+  //   const room = await this.roomService.readMine(client.id);
+  //   if (!room) return false;
 
-    if (user.userId != room.ownerId) return false;
+  //   if (user.userId != room.ownerId) return false;
 
-    const data: VidData = {
-      url: video.url,
-      speed: video.speed,
-      time: video.time,
-      isPaused: video.isPaused,
-    };
+  //   const data: VidData = {
+  //     url: video.url,
+  //     speed: video.speed,
+  //     time: video.time,
+  //     isPaused: video.isPaused,
+  //   };
 
-    this.socketService.msgExcludeMe(client, 'video', data);
-
-    return await this.roomService.updateMine(client.id, {
-      vidTitle: video.title,
-      vidEpisode: video.episode,
-      vidData: data,
-    });
-  }
+  //   return await this.roomService.updateMine(client.id, {
+  //     vidTitle: video.title,
+  //     vidEpisode: video.episode,
+  //     vidData: data,
+  //   });
+  // }
 }

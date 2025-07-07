@@ -5,8 +5,9 @@ import {
   Unique,
   UpdateDateColumn,
   OneToMany,
+  OneToOne,
 } from 'typeorm';
-import { User } from '../../user/entities/user.entity';
+import { mockUser, User } from '../../user/entities/user.entity';
 
 @Entity()
 export class Room {
@@ -15,9 +16,6 @@ export class Room {
 
   @UpdateDateColumn()
   updatedAt: Date;
-
-  @Column()
-  ownerId: number;
 
   @Column()
   name: string;
@@ -36,6 +34,9 @@ export class Room {
 
   @OneToMany(() => User, (user) => user.room)
   users: User[];
+
+  @OneToOne(() => User, (user) => user.host)
+  owner: User;
 }
 
 export interface VidData {
@@ -53,3 +54,15 @@ export interface Video {
   time: number;
   isPaused: boolean;
 }
+
+export const mockRoom: Room = {
+  id: 1,
+  updatedAt: new Date(),
+  name: 'Test Room',
+  password: 1234,
+  vidTitle: null,
+  vidEpisode: null,
+  vidData: null,
+  users: [mockUser],
+  owner: mockUser,
+};

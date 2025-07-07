@@ -6,7 +6,15 @@ import { Repository } from 'typeorm';
 
 describe('UserService', () => {
   let service: UserService;
-  let repo: jest.Mocked<Repository<User>>;
+
+  const mockUserRepository = {
+    findOne: jest.fn(),
+    find: jest.fn(),
+    save: jest.fn(),
+    delete: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -14,21 +22,12 @@ describe('UserService', () => {
         UserService,
         {
           provide: getRepositoryToken(User),
-          useValue: {
-            create: jest.fn(),
-            save: jest.fn(),
-            findOneBy: jest.fn(),
-            update: jest.fn(),
-            delete: jest.fn(),
-            findBy: jest.fn(),
-            countBy: jest.fn(),
-          },
+          useValue: mockUserRepository,
         },
       ],
     }).compile();
 
     service = module.get<UserService>(UserService);
-    repo = module.get(getRepositoryToken(User));
   });
 
   it('should be defined', () => {
@@ -37,50 +36,67 @@ describe('UserService', () => {
 
   describe('create', () => {
     it('should create and save a user', async () => {
-      const user = mockUser;
-      repo.create.mockReturnValue(user);
-      repo.save.mockResolvedValue(user);
+      mockUserRepository.create.mockReturnValue(mockUser);
+      mockUserRepository.save.mockResolvedValue(mockUser);
       const result = await service.create('socket-123');
-      expect(repo.create).toHaveBeenCalledWith({ socketId: 'socket-123' });
-      expect(repo.save).toHaveBeenCalledWith(user);
-      expect(result).toBe(user);
+      expect(mockUserRepository.create).toHaveBeenCalledWith({
+        socketId: 'socket-123',
+      });
+      expect(mockUserRepository.save).toHaveBeenCalledWith(mockUser);
+      expect(result).toBe(mockUser);
     });
   });
 
   describe('read', () => {
     it('should return user if found', async () => {
-      const user = mockUser;
-      repo.findOneBy.mockResolvedValue(user);
+      mockUserRepository.findOne.mockResolvedValue(mockUser);
+
       const result = await service.read('socket-123');
-      expect(repo.findOneBy).toHaveBeenCalledWith({ socketId: 'socket-123' });
-      expect(result).toBe(user);
+
+      expect(mockUserRepository.findOne).toHaveBeenCalledWith({
+        where: { socketId: 'socket-123' },
+        relations: [],
+      });
+      expect(result).toBe(mockUser);
     });
+
     it('should create user if not found', async () => {
-      const user = mockUser;
-      repo.findOneBy.mockResolvedValue(undefined);
-      repo.create.mockReturnValue(user);
-      repo.save.mockResolvedValue(user);
+      mockUserRepository.findOne.mockResolvedValue(undefined);
+      mockUserRepository.create.mockReturnValue(mockUser);
+      mockUserRepository.save.mockResolvedValue(mockUser);
       const result = await service.read('socket-123');
-      expect(repo.create).toHaveBeenCalledWith({ socketId: 'socket-123' });
-      expect(repo.save).toHaveBeenCalledWith(user);
-      expect(result).toBe(user);
+      expect(mockUserRepository.create).toHaveBeenCalledWith({
+        socketId: 'socket-123',
+      });
+      expect(mockUserRepository.save).toHaveBeenCalledWith(mockUser);
+      expect(result).toBe(mockUser);
+    });
+
+    it('should return user with relations if specified', async () => {
+      mockUserRepository.findOne.mockResolvedValue(mockUser);
+      const result = await service.read('socket-123', ['room', 'host']);
+      expect(mockUserRepository.findOne).toHaveBeenCalledWith({
+        where: { socketId: 'socket-123' },
+        relations: ['room', 'host'],
+      });
+      expect(result).toBe(mockUser);
     });
   });
 
   describe('update', () => {
     it('should return true if update affected rows', async () => {
-      repo.update.mockResolvedValue({ affected: 1 } as any);
+      mockUserRepository.update.mockResolvedValue({ affected: 1 } as any);
       const result = await service.update('socket-123', {
         room: { id: 2 } as any,
       });
-      expect(repo.update).toHaveBeenCalledWith(
+      expect(mockUserRepository.update).toHaveBeenCalledWith(
         { socketId: 'socket-123' },
         { room: { id: 2 } },
       );
       expect(result).toBe(true);
     });
     it('should return false if update affected 0 rows', async () => {
-      repo.update.mockResolvedValue({ affected: 0 } as any);
+      mockUserRepository.update.mockResolvedValue({ affected: 0 } as any);
       const result = await service.update('socket-123', {
         room: { id: 2 } as any,
       });
@@ -90,34 +106,17 @@ describe('UserService', () => {
 
   describe('remove', () => {
     it('should return true if delete affected rows', async () => {
-      repo.delete.mockResolvedValue({ affected: 1 } as any);
+      mockUserRepository.delete.mockResolvedValue({ affected: 1 });
       const result = await service.remove('socket-123');
-      expect(repo.delete).toHaveBeenCalledWith({ socketId: 'socket-123' });
+      expect(mockUserRepository.delete).toHaveBeenCalledWith({
+        socketId: 'socket-123',
+      });
       expect(result).toBe(true);
     });
     it('should return false if delete affected 0 rows', async () => {
-      repo.delete.mockResolvedValue({ affected: 0 } as any);
+      mockUserRepository.delete.mockResolvedValue({ affected: 0 });
       const result = await service.remove('socket-123');
       expect(result).toBe(false);
-    });
-  });
-
-  describe('listMember', () => {
-    it('should return users by room id', async () => {
-      const users = [mockUser, mockUser];
-      repo.findBy.mockResolvedValue(users);
-      const result = await service.listMember(1);
-      expect(repo.findBy).toHaveBeenCalledWith({ room: { id: 1 } });
-      expect(result).toBe(users);
-    });
-  });
-
-  describe('countMember', () => {
-    it('should return count of users by room id', async () => {
-      repo.countBy.mockResolvedValue(3);
-      const result = await service.countMember(1);
-      expect(repo.countBy).toHaveBeenCalledWith({ room: { id: 1 } });
-      expect(result).toBe(3);
     });
   });
 });
