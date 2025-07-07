@@ -40,7 +40,7 @@ describe('UserService', () => {
       mockUserRepository.save.mockResolvedValue(mockUser);
       const result = await service.create('socket-123');
       expect(mockUserRepository.create).toHaveBeenCalledWith({
-        socketId: 'socket-123',
+        id: 'socket-123',
       });
       expect(mockUserRepository.save).toHaveBeenCalledWith(mockUser);
       expect(result).toBe(mockUser);
@@ -54,7 +54,7 @@ describe('UserService', () => {
       const result = await service.read('socket-123');
 
       expect(mockUserRepository.findOne).toHaveBeenCalledWith({
-        where: { socketId: 'socket-123' },
+        where: { id: 'socket-123' },
         relations: [],
       });
       expect(result).toBe(mockUser);
@@ -66,7 +66,7 @@ describe('UserService', () => {
       mockUserRepository.save.mockResolvedValue(mockUser);
       const result = await service.read('socket-123');
       expect(mockUserRepository.create).toHaveBeenCalledWith({
-        socketId: 'socket-123',
+        id: 'socket-123',
       });
       expect(mockUserRepository.save).toHaveBeenCalledWith(mockUser);
       expect(result).toBe(mockUser);
@@ -76,7 +76,7 @@ describe('UserService', () => {
       mockUserRepository.findOne.mockResolvedValue(mockUser);
       const result = await service.read('socket-123', ['room', 'host']);
       expect(mockUserRepository.findOne).toHaveBeenCalledWith({
-        where: { socketId: 'socket-123' },
+        where: { id: 'socket-123' },
         relations: ['room', 'host'],
       });
       expect(result).toBe(mockUser);
@@ -87,18 +87,18 @@ describe('UserService', () => {
     it('should return true if update affected rows', async () => {
       mockUserRepository.update.mockResolvedValue({ affected: 1 } as any);
       const result = await service.update('socket-123', {
-        room: { id: 2 } as any,
+        name: 'koderpark2222',
       });
       expect(mockUserRepository.update).toHaveBeenCalledWith(
-        { socketId: 'socket-123' },
-        { room: { id: 2 } },
+        { id: 'socket-123' },
+        { name: 'koderpark2222' },
       );
       expect(result).toBe(true);
     });
     it('should return false if update affected 0 rows', async () => {
       mockUserRepository.update.mockResolvedValue({ affected: 0 } as any);
       const result = await service.update('socket-123', {
-        room: { id: 2 } as any,
+        name: 'koderpark2222',
       });
       expect(result).toBe(false);
     });
@@ -109,7 +109,7 @@ describe('UserService', () => {
       mockUserRepository.delete.mockResolvedValue({ affected: 1 });
       const result = await service.remove('socket-123');
       expect(mockUserRepository.delete).toHaveBeenCalledWith({
-        socketId: 'socket-123',
+        id: 'socket-123',
       });
       expect(result).toBe(true);
     });

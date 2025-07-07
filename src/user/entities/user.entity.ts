@@ -1,23 +1,23 @@
 import {
   Entity,
   Column,
-  PrimaryGeneratedColumn,
   ManyToOne,
   CreateDateColumn,
   OneToOne,
+  PrimaryColumn,
 } from 'typeorm';
 import { Room } from '../../room/entities/room.entity';
 
 @Entity()
 export class User {
-  @PrimaryGeneratedColumn() // PK
-  userId: number;
+  @PrimaryColumn() // PK, socket.id
+  id: string;
 
   @CreateDateColumn()
   createdAt: Date;
 
   @Column()
-  socketId: string;
+  name: string;
 
   @ManyToOne(() => Room, (room) => room.users, { onDelete: 'SET NULL' })
   room?: Room;
@@ -27,9 +27,9 @@ export class User {
 }
 
 export const mockUser: User = {
-  userId: 1,
+  id: 'socket-123',
   createdAt: new Date(),
-  socketId: 'socket-123',
+  name: 'koderpark',
   room: null,
   host: null,
 };

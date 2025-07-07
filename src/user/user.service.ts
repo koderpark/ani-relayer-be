@@ -12,28 +12,28 @@ export class UserService {
     private userRepository: Repository<User>,
   ) {}
 
-  async create(socketId: string): Promise<User> {
-    const user = this.userRepository.create({ socketId }); // 엔티티 생성
+  async create(id: string): Promise<User> {
+    const user = this.userRepository.create({ id }); // 엔티티 생성
     await this.userRepository.save(user); // 데이터베이스에 저장
     return user;
   }
 
-  async read(socketId: string, relations: string[] = []): Promise<User> {
+  async read(id: string, relations: string[] = []): Promise<User> {
     const user = await this.userRepository.findOne({
-      where: { socketId },
+      where: { id },
       relations,
     });
-    if (!user) return await this.create(socketId);
+    if (!user) return await this.create(id);
     return user;
   }
 
-  async update(socketId: string, data: Partial<User>): Promise<boolean> {
-    const res = await this.userRepository.update({ socketId }, data);
+  async update(id: string, data: Partial<User>): Promise<boolean> {
+    const res = await this.userRepository.update({ id }, data);
     return res.affected ? true : false;
   }
 
-  async remove(socketId: string): Promise<boolean> {
-    const res = await this.userRepository.delete({ socketId });
+  async remove(id: string): Promise<boolean> {
+    const res = await this.userRepository.delete({ id });
     return res.affected ? true : false;
   }
 }
