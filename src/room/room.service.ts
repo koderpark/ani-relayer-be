@@ -4,6 +4,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { Room } from './entities/room.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -48,6 +49,19 @@ export class RoomService {
     });
     await this.roomRepository.save(room);
     await this.userService.update(userId, { host: room, room: room });
+    return room;
+  }
+
+  async join(userId: string, roomId: number, password?: number): Promise<Room> {
+    const user = await this.userService.read(userId, ['room', 'host']);
+    if (user.room) throw new BadRequestException('already_in_room');
+
+    const room = await this.read(roomId, ['users']);
+
+    if (!(await this.chkPW(roomId, password)))
+      throw new BadRequestException('wrong_password');
+
+    await this.userService.update(userId, { room });
     return room;
   }
 
