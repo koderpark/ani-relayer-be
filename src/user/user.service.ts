@@ -25,7 +25,7 @@ export class UserService {
     return user;
   }
 
-  async update(socketId: string, data: UserUpdateDto): Promise<boolean> {
+  async update(socketId: string, data: Partial<User>): Promise<boolean> {
     const res = await this.userRepository.update({ socketId }, data);
     return res.affected ? true : false;
   }
@@ -36,11 +36,11 @@ export class UserService {
   }
 
   async listMember(roomId: number): Promise<User[]> {
-    return await this.userRepository.findBy({ roomId });
+    return await this.userRepository.findBy({ room: { id: roomId } });
   }
 
   async countMember(roomId: number): Promise<number> {
-    const cnt = await this.userRepository.countBy({ roomId });
+    const cnt = await this.userRepository.countBy({ room: { id: roomId } });
     return cnt;
   }
 }

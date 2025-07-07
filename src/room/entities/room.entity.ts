@@ -4,7 +4,9 @@ import {
   PrimaryGeneratedColumn,
   Unique,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
+import { User } from 'src/user/entities/user.entity';
 
 @Entity()
 export class Room {
@@ -31,6 +33,9 @@ export class Room {
 
   @Column({ type: 'json', default: null })
   vidData: VidData;
+
+  @OneToMany(() => User, (user) => user.room)
+  users: User[];
 }
 
 export interface VidData {

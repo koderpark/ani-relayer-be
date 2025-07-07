@@ -12,14 +12,22 @@ export class SocketService {
 
   constructor(private readonly userService: UserService) {}
 
-  async msgExcludeMe(client: Socket, eventName: string, body?: any) {
-    const user = await this.userService.read(client.id);
-    if (!user) return;
+  // async msgExcludeMe(client: Socket, eventName: string, body?: any) {
+  //   const user = await this.userService.read(client.id);
+  //   if (!user) return;
 
-    client.to(user.roomId.toString()).emit(eventName, body);
+  //   client.to(user.roomId.toString()).emit(eventName, body);
+  // }
+
+  // async msgInRoom(roomId: number, eventName: string, body?: any) {
+  //   this.server.to(roomId.toString()).emit(eventName, body);
+  // }
+
+  async onConnection(client: Socket) {
+    await this.userService.create(client.id);
   }
 
-  async msgInRoom(roomId: number, eventName: string, body?: any) {
-    this.server.to(roomId.toString()).emit(eventName, body);
+  async onDisconnection(client: Socket) {
+    await this.userService.remove(client.id);
   }
 }
