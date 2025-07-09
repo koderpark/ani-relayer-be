@@ -1,9 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { Socket } from 'socket.io';
-import { VidData, Video } from 'src/room/entities/room.entity';
-import { RoomService } from 'src/room/room.service';
-import { SocketService } from 'src/socket/socket.service';
-import { UserService } from 'src/user/user.service';
+import { VidData, Video } from '../room/entities/room.entity';
+import { RoomService } from '../room/room.service';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class VideoService {
@@ -12,24 +11,21 @@ export class VideoService {
     private readonly userService: UserService,
   ) {}
 
-  // async update(client: Socket, video: Video): Promise<boolean> {
-  //   const user = await this.userService.read(client.id);
-  //   const room = await this.roomService.readMine(client.id);
-  //   if (!room) return false;
+  async update(client: Socket, video: Video): Promise<boolean> {
+    const user = await this.userService.read(client.id, ['host']);
+    if (!user.host) throw new BadRequestException('not_host');
 
-  //   if (user.userId != room.ownerId) return false;
+    const data: VidData = {
+      url: video.url,
+      speed: video.speed,
+      time: video.time,
+      isPaused: video.isPaused,
+    };
 
-  //   const data: VidData = {
-  //     url: video.url,
-  //     speed: video.speed,
-  //     time: video.time,
-  //     isPaused: video.isPaused,
-  //   };
-
-  //   return await this.roomService.updateMine(client.id, {
-  //     vidTitle: video.title,
-  //     vidEpisode: video.episode,
-  //     vidData: data,
-  //   });
-  // }
+    return await this.roomService.update(client.id, {
+      vidTitle: video.title,
+      vidEpisode: video.episode,
+      vidData: data,
+    });
+  }
 }

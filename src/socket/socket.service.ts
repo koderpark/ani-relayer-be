@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Socket, Server, Namespace } from 'socket.io';
-import { RoomService } from 'src/room/room.service';
-import { UserService } from 'src/user/user.service';
+import { RoomService } from '../room/room.service';
+import { UserService } from '../user/user.service';
 import { WebSocketServer } from '@nestjs/websockets';
 @Injectable()
 export class SocketService {

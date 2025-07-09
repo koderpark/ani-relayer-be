@@ -9,8 +9,8 @@ import {
   WebSocketGateway,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { SocketService } from 'src/socket/socket.service';
-import { Video } from 'src/room/entities/room.entity';
+import { SocketService } from './socket.service';
+import { Video } from '../room/entities/room.entity';
 
 @WebSocketGateway(8081, { cors: { origin: '*' } })
 export class SocketGateway

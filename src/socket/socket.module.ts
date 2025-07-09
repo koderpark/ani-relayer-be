@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { SocketService } from './socket.service';
-import { UserModule } from 'src/user/user.module';
+import { UserModule } from '../user/user.module';
 import { SocketGateway } from './socket.gateway';
-import { RoomModule } from 'src/room/room.module';
+import { RoomModule } from '../room/room.module';
 
 @Module({
   imports: [UserModule, RoomModule],
