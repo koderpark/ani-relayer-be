@@ -163,6 +163,49 @@ describe('RoomService', () => {
     });
   });
 
+  describe('leave', () => {
+    it('should throw BadRequestException if user not in room', async () => {
+      userService.read.mockResolvedValue({ ...mockUser, room: null });
+      await expect(service.leave('socket-123')).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(userService.read).toHaveBeenCalledWith('socket-123', [
+        'room',
+        'host',
+      ]);
+    });
+
+    it('should remove room if user is host', async () => {
+      userService.read.mockResolvedValue({
+        ...mockUser,
+        room: mockRoom,
+        host: mockRoom,
+      });
+      jest.spyOn(service, 'remove').mockResolvedValue(true);
+
+      const result = await service.leave('socket-123');
+
+      expect(service.remove).toHaveBeenCalledWith('socket-123');
+      expect(result).toBe(true);
+    });
+
+    it('should update user room to null if not host', async () => {
+      userService.read.mockResolvedValue({
+        ...mockUser,
+        room: mockRoom,
+        host: null,
+      });
+      userService.update.mockResolvedValue(true);
+
+      const result = await service.leave('socket-123');
+
+      expect(userService.update).toHaveBeenCalledWith('socket-123', {
+        room: null,
+      });
+      expect(result).toBe(true);
+    });
+  });
+
   describe('read', () => {
     it('should return room if found', async () => {
       mockRoomRepository.findOne.mockResolvedValue(mockRoom);

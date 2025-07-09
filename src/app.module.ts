@@ -8,7 +8,6 @@ import { UserModule } from './user/user.module';
 import { User } from './user/entities/user.entity';
 import { RoomModule } from './room/room.module';
 import { Room } from './room/entities/room.entity';
-import { PartyModule } from './party/party.module';
 import { VideoModule } from './video/video.module';
 
 @Module({
@@ -16,18 +15,17 @@ import { VideoModule } from './video/video.module';
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot({
       type: 'mysql',
-      host: 'localhost',
+      host: 'koder.page',
       port: 3307,
       username: process.env.DB,
       password: process.env.DBPW,
-      database: 'test',
+      database: 'laftelsync',
       entities: [User, Room],
       synchronize: true,
     }),
     SocketModule,
     UserModule,
     RoomModule,
-    PartyModule,
     VideoModule,
   ],
   controllers: [AppController],

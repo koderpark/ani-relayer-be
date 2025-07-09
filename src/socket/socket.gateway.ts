@@ -53,8 +53,16 @@ export class SocketGateway
   //   this.roomService.updateVideoStatus(client, videoParseDto);
   // }
 
-  async handleConnection(client: Socket): Promise<void> {
-    await this.socketService.onConnection(client);
+  async handleConnection(
+    client: Socket,
+    type: 'host' | 'peer',
+    input: {
+      name: string;
+      roomId?: number;
+      password?: number;
+    },
+  ): Promise<void> {
+    await this.socketService.onConnection(client, type, input);
     return;
   }
 
