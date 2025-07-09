@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
@@ -12,8 +12,8 @@ export class UserService {
     private userRepository: Repository<User>,
   ) {}
 
-  async create(id: string): Promise<User> {
-    const user = this.userRepository.create({ id }); // 엔티티 생성
+  async create(id: string, name: string): Promise<User> {
+    const user = this.userRepository.create({ id, name }); // 엔티티 생성
     await this.userRepository.save(user); // 데이터베이스에 저장
     return user;
   }
@@ -23,7 +23,7 @@ export class UserService {
       where: { id },
       relations,
     });
-    if (!user) return await this.create(id);
+    if (!user) throw new NotFoundException('user_not_found');
     return user;
   }
 

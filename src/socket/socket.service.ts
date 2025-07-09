@@ -1,5 +1,5 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { Socket, Server, Namespace } from 'socket.io';
+import { Injectable, Logger } from '@nestjs/common';
+import { Socket, Server } from 'socket.io';
 import { RoomService } from '../room/room.service';
 import { UserService } from '../user/user.service';
 import { WebSocketServer } from '@nestjs/websockets';
@@ -26,18 +26,27 @@ export class SocketService {
     this.server.to(roomId.toString()).emit(eventName, body);
   }
 
+  async roomChanged(roomId: number) {
+    await this.msgInRoom(
+      roomId,
+      'roomChanged',
+      await this.roomService.read(roomId, ['user', 'host']),
+    );
+  }
+
   async onConnection(
     client: Socket,
     type: 'host' | 'peer',
     input: {
-      name: string;
+      name?: string;
+      roomName?: string;
       roomId?: number;
       password?: number;
     },
   ) {
-    await this.userService.create(client.id);
+    await this.userService.create(client.id, input.name);
     if (type == 'host') {
-      await this.roomService.create(client.id, input.name, input.password);
+      await this.roomService.create(client.id, input.roomName, input.password);
     } else {
       await this.roomService.join(client.id, input.roomId, input.password);
     }
@@ -46,11 +55,11 @@ export class SocketService {
     if (!room) client.disconnect(true);
 
     await client.join(room.id.toString());
-    await this.msgInRoom(room.id, 'roomUpdate', room); // Todo: roomstatus
+    await this.roomChanged(room.id);
     return room;
   }
 
-  async onDisconnection(client: Socket) {
+  async onDisconnection(client: Socket): Promise<void> {
     await this.userService.remove(client.id);
     const user = await this.userService.read(client.id, ['room', 'host']);
 
@@ -60,7 +69,6 @@ export class SocketService {
       await this.roomService.leave(client.id);
     }
 
-    if (user.room)
-      await this.msgInRoom(user.room.id, 'roomUpdate', user.room);
+    await this.roomChanged(user.room.id);
   }
 }

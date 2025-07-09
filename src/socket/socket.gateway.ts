@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { BadRequestException, Logger } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -53,16 +53,16 @@ export class SocketGateway
   //   this.roomService.updateVideoStatus(client, videoParseDto);
   // }
 
-  async handleConnection(
-    client: Socket,
-    type: 'host' | 'peer',
-    input: {
-      name: string;
-      roomId?: number;
-      password?: number;
-    },
-  ): Promise<void> {
-    await this.socketService.onConnection(client, type, input);
+  async handleConnection(client: Socket): Promise<void> {
+    const { type, name, roomId, password } = client.handshake.headers;
+    if (!type || !name || !roomId)
+      throw new BadRequestException('invalid_input');
+
+    await this.socketService.onConnection(client, type as 'host' | 'peer', {
+      name: name as string,
+      roomId: Number(roomId),
+      password: password ? Number(password) : undefined,
+    });
     return;
   }
 

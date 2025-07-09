@@ -38,9 +38,10 @@ describe('UserService', () => {
     it('should create and save a user', async () => {
       mockUserRepository.create.mockReturnValue(mockUser);
       mockUserRepository.save.mockResolvedValue(mockUser);
-      const result = await service.create('socket-123');
+      const result = await service.create('socket-123', 'koderpark');
       expect(mockUserRepository.create).toHaveBeenCalledWith({
         id: 'socket-123',
+        name: 'koderpark',
       });
       expect(mockUserRepository.save).toHaveBeenCalledWith(mockUser);
       expect(result).toBe(mockUser);
@@ -60,16 +61,15 @@ describe('UserService', () => {
       expect(result).toBe(mockUser);
     });
 
-    it('should create user if not found', async () => {
+    it('should throw error if user not found', async () => {
       mockUserRepository.findOne.mockResolvedValue(undefined);
-      mockUserRepository.create.mockReturnValue(mockUser);
-      mockUserRepository.save.mockResolvedValue(mockUser);
-      const result = await service.read('socket-123');
-      expect(mockUserRepository.create).toHaveBeenCalledWith({
-        id: 'socket-123',
+      await expect(service.read('socket-123')).rejects.toThrow(
+        'user_not_found',
+      );
+      expect(mockUserRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 'socket-123' },
+        relations: [],
       });
-      expect(mockUserRepository.save).toHaveBeenCalledWith(mockUser);
-      expect(result).toBe(mockUser);
     });
 
     it('should return user with relations if specified', async () => {
