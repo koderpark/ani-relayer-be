@@ -7,6 +7,7 @@ import {
   PrimaryColumn,
 } from 'typeorm';
 import { Room } from '../../room/entities/room.entity';
+import { mockRoom } from '../../room/entities/room.entity';
 
 @Entity()
 export class User {
@@ -30,6 +31,6 @@ export const mockUser: User = {
   id: 'socket-123',
   createdAt: new Date(),
   name: 'koderpark',
-  room: null,
-  host: null,
+  room: mockRoom,
+  host: mockRoom,
 };
