@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { BadRequestException, Logger } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -9,22 +9,14 @@ import {
   WebSocketGateway,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { SocketService } from 'src/socket/socket.service';
-import { PartyService } from './party.service';
-import { RoomService } from 'src/room/room.service';
-import { Video } from 'src/room/entities/room.entity';
-import { VideoService } from 'src/video/video.service';
+import { SocketService } from './socket.service';
+import { Video } from '../room/entities/room.entity';
 
 @WebSocketGateway(8081, { cors: { origin: '*' } })
-export class PartyGateway
+export class SocketGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
-  constructor(
-    private readonly socketService: SocketService,
-    private readonly partyService: PartyService,
-    private readonly roomService: RoomService,
-    private readonly videoService: VideoService,
-  ) {}
+  constructor(private readonly socketService: SocketService) {}
 
   private logger: Logger = new Logger('websocket');
 
@@ -49,7 +41,7 @@ export class PartyGateway
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
     this.logger.log(`${client.id} sended ${video}`);
-    this.videoService.update(client, video);
+    // this.videoService.update(client, video);
   }
 
   // @SubscribeMessage('updateVid')
@@ -62,12 +54,20 @@ export class PartyGateway
   // }
 
   async handleConnection(client: Socket): Promise<void> {
-    await this.partyService.onSocketLogin(client);
+    const { type, name, roomId, password } = client.handshake.headers;
+    if (!type || !name || !roomId)
+      throw new BadRequestException('invalid_input');
+
+    await this.socketService.onConnection(client, type as 'host' | 'peer', {
+      name: name as string,
+      roomId: Number(roomId),
+      password: password ? Number(password) : undefined,
+    });
     return;
   }
 
   async handleDisconnect(client: Socket): Promise<void> {
-    await this.partyService.onSocketLogout(client);
+    await this.socketService.onDisconnection(client);
     return;
   }
 }

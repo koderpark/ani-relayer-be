@@ -1,13 +1,36 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  ManyToOne,
+  CreateDateColumn,
+  OneToOne,
+  PrimaryColumn,
+} from 'typeorm';
+import { Room } from '../../room/entities/room.entity';
+import { mockRoom } from '../../room/entities/room.entity';
 
 @Entity()
 export class User {
-  @PrimaryGeneratedColumn() // PK
-  userId: number;
+  @PrimaryColumn() // PK, socket.id
+  id: string;
+
+  @CreateDateColumn()
+  createdAt: Date;
 
   @Column()
-  socketId: string;
+  name: string;
 
-  @Column({ default: -1 })
-  roomId: number;
+  @ManyToOne(() => Room, (room) => room.users, { onDelete: 'SET NULL' })
+  room?: Room;
+
+  @OneToOne(() => Room, (room) => room.owner, { onDelete: 'SET NULL' })
+  host?: Room;
 }
+
+export const mockUser: User = {
+  id: 'socket-123',
+  createdAt: new Date(),
+  name: 'koderpark',
+  room: mockRoom,
+  host: mockRoom,
+};
