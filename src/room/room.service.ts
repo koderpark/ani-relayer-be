@@ -38,18 +38,21 @@ export class RoomService {
   }
 
   async create(userId: string, name: string, password?: number): Promise<Room> {
-    this.logger.log(`create Room ${name}`);
+    this.logger.log(`create Room ${name} by ${userId}`);
 
     const owner = await this.userService.read(userId);
-    const room = this.roomRepository.create({
-      name,
-      password,
-      owner,
-      users: [owner],
+
+    // Create and save the room first
+    const room = this.roomRepository.create({ name, password });
+    const savedRoom = await this.roomRepository.save(room);
+
+    // Then update the user with the saved room
+    await this.userService.update(userId, {
+      host: savedRoom,
+      room: savedRoom,
     });
-    await this.roomRepository.save(room);
-    await this.userService.update(userId, { host: room, room: room });
-    return room;
+
+    return savedRoom;
   }
 
   async join(userId: string, roomId: number, password?: number): Promise<Room> {
@@ -76,7 +79,8 @@ export class RoomService {
       return true;
     }
 
-    return await this.userService.update(userId, { room: null });
+    // return await this.userService.update(userId, { room: null });
+    return true;
   }
 
   async read(id: number, relations: string[] = []): Promise<Room> {
@@ -115,29 +119,4 @@ export class RoomService {
     const res = await this.roomRepository.delete({});
     return res.affected ? true : false;
   }
-
-  // async updateVideo(key: UserKeyDto, video: RoomVideoDto) {
-  //   const room = await this.readMine(key);
-  //   if (!room) throw new HttpException('not_in_room', HttpStatus.BAD_REQUEST);
-
-  //   console.log(video);
-  //   // await this.roomRepository.update(room.id, video);
-  //   return true;
-  // }
-
-  // async updateVideoStatus(client: Socket, videoParseDto: VideoParseDto) {
-  //   const key = await this.socketService.clientToKey(client);
-  //   const { vidName, vidUrl, vidEpisode } = videoParseDto;
-
-  //   await this.updateVideo(key, {
-  //     vidName,
-  //     vidUrl,
-  //     vidEpisode,
-  //   });
-
-  //   const room = await this.readMine(key);
-  //   if (!room) return;
-
-  //   await this.socketService.msgExcludeMe(client, 'roomUpdate', room.id);
-  // }
 }

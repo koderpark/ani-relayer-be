@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   OneToMany,
   OneToOne,
+  JoinColumn,
 } from 'typeorm';
 import { mockUser, User } from '../../user/entities/user.entity';
 
@@ -32,11 +33,13 @@ export class Room {
   @Column({ type: 'json', default: null })
   vidData: VidData;
 
-  @OneToMany(() => User, (user) => user.room)
+  @OneToMany(() => User, (user) => user.room, { nullable: true })
+  @JoinColumn()
   users: User[];
 
-  @OneToOne(() => User, (user) => user.host)
-  owner: User;
+  @OneToOne(() => User, (user) => user.host, { nullable: true })
+  @JoinColumn()
+  host: User;
 }
 
 export interface VidData {
@@ -64,5 +67,5 @@ export const mockRoom: Room = {
   vidEpisode: null,
   vidData: null,
   users: [mockUser],
-  owner: mockUser,
+  host: mockUser,
 };

@@ -54,19 +54,47 @@ export class SocketGateway
   // }
 
   async handleConnection(client: Socket): Promise<void> {
-    const { type, name, roomId, password } = client.handshake.headers;
-    if (!type || !name || !roomId)
-      throw new BadRequestException('invalid_input');
+    const { type } = client.handshake.auth;
 
-    await this.socketService.onConnection(client, type as 'host' | 'peer', {
-      name: name as string,
-      roomId: Number(roomId),
-      password: password ? Number(password) : undefined,
-    });
+    this.logger.log(`${client.id} connected`);
+
+    try {
+      if (type === 'host') await this.handleHostConnection(client);
+      else if (type === 'peer') await this.handlePeerConnection(client);
+      else throw new BadRequestException('invalid_input_type');
+    } catch (error) {
+      this.logger.error(error);
+      client.disconnect();
+    }
     return;
   }
 
+  async handleHostConnection(client: Socket): Promise<void> {
+    const { username, name, password } = client.handshake.auth;
+
+    console.log('handleHostConnection', username, name, password);
+
+    await this.socketService.onHostConnection(client, {
+      username: username as string,
+      name: name as string,
+      password: password ? Number(password) : undefined,
+    });
+  }
+
+  async handlePeerConnection(client: Socket): Promise<void> {
+    const { username, roomId, password } = client.handshake.auth;
+
+    console.log('handlePeerConnection', username, roomId, password);
+
+    await this.socketService.onPeerConnection(client, {
+      username: username as string,
+      roomId: Number(roomId),
+      password: password ? Number(password) : undefined,
+    });
+  }
+
   async handleDisconnect(client: Socket): Promise<void> {
+    this.logger.log(`${client.id} disconnected`);
     await this.socketService.onDisconnection(client);
     return;
   }

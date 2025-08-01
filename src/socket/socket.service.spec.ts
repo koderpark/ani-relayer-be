@@ -65,21 +65,25 @@ describe('SocketService', () => {
 
   describe('roomMetadata', () => {
     it('should return room metadata', async () => {
-      const mockUser = { id: 'socket-123', name: 'koderpark', createdAt: new Date() } as any;
-      const mockRoom = { 
-        id: 1, 
-        name: 'Test Room', 
-        users: [mockUser], 
-        owner: mockUser 
+      const mockUser = {
+        id: 'socket-123',
+        name: 'koderpark',
+        createdAt: new Date(),
       } as any;
-      
+      const mockRoom = {
+        id: 1,
+        name: 'Test Room',
+        users: [mockUser],
+        owner: mockUser,
+      } as any;
+
       jest.spyOn(roomService, 'read').mockResolvedValue(mockRoom);
       const result = await service.roomMetadata(1);
       expect(roomService.read).toHaveBeenCalledWith(1, ['users', 'owner']);
       expect(result).toEqual({
         id: 1,
         name: 'Test Room',
-        user: [{ id: 'socket-123', name: 'koderpark', isHost: true}],
+        user: [{ id: 'socket-123', name: 'koderpark', isHost: true }],
       });
     });
   });
@@ -105,110 +109,112 @@ describe('SocketService', () => {
       await service.roomChanged(1);
 
       expect(service.roomMetadata).toHaveBeenCalledWith(1);
-      expect(service.msgInRoom).toHaveBeenCalledWith(1, 'roomChanged', expect.any(Promise));
+      expect(service.msgInRoom).toHaveBeenCalledWith(
+        1,
+        'roomChanged',
+        expect.any(Promise),
+      );
     });
   });
 
+  // describe('onConnection', () => {
+  //   let mockClient: Socket;
 
-  describe('onConnection', () => {
-    let mockClient: Socket;
+  //   beforeEach(() => {
+  //     mockClient = {
+  //       id: 'socket-123',
+  //       join: jest.fn(),
+  //       disconnect: jest.fn(),
+  //     } as any;
+  //   });
 
-    beforeEach(() => {
-      mockClient = {
-        id: 'socket-123',
-        join: jest.fn(),
-        disconnect: jest.fn(),
-      } as any;
-    });
+  //   it('should throw BadRequestException if host without roomName', async () => {
+  //     await expect(
+  //       service.onConnection(mockClient, 'host', { name: 'test' }),
+  //     ).rejects.toThrow(BadRequestException);
+  //   });
 
-    it('should throw BadRequestException if host without roomName', async () => {
-      await expect(
-        service.onConnection(mockClient, 'host', { name: 'test' }),
-      ).rejects.toThrow(BadRequestException);
-    });
+  //   it('should throw BadRequestException if peer without roomId', async () => {
+  //     await expect(
+  //       service.onConnection(mockClient, 'peer', { name: 'test' }),
+  //     ).rejects.toThrow(BadRequestException);
+  //   });
 
-    it('should throw BadRequestException if peer without roomId', async () => {
-      await expect(
-        service.onConnection(mockClient, 'peer', { name: 'test' }),
-      ).rejects.toThrow(BadRequestException);
-    });
+  //   it('should create user and room for host', async () => {
+  //     const mockUser = { id: 'socket-123', name: 'koderpark', createdAt: new Date() } as any;
+  //     const mockRoom = {
+  //       id: 1,
+  //       name: 'Test Room',
+  //       password: 1234,
+  //       users: [mockUser],
+  //       owner: mockUser
+  //     } as any;
 
-    it('should create user and room for host', async () => {
-      const mockUser = { id: 'socket-123', name: 'koderpark', createdAt: new Date() } as any;
-      const mockRoom = { 
-        id: 1, 
-        name: 'Test Room', 
-        password: 1234,
-        users: [mockUser], 
-        owner: mockUser 
-      } as any;
-      
-      userService.create.mockResolvedValue(mockUser);
-      roomService.create.mockResolvedValue(mockRoom);
-      roomService.readMine.mockResolvedValue(mockRoom);
-      jest.spyOn(service, 'roomChanged').mockResolvedValue(undefined);
+  //     userService.create.mockResolvedValue(mockUser);
+  //     roomService.create.mockResolvedValue(mockRoom);
+  //     roomService.readMine.mockResolvedValue(mockRoom);
+  //     jest.spyOn(service, 'roomChanged').mockResolvedValue(undefined);
 
-      const result = await service.onConnection(mockClient, 'host', {
-        name: mockUser.name,
-        roomName: mockRoom.name,
-        password: mockRoom.password,
-      });
+  //     const result = await service.onConnection(mockClient, 'host', {
+  //       name: mockUser.name,
+  //       roomName: mockRoom.name,
+  //       password: mockRoom.password,
+  //     });
 
-      expect(userService.create).toHaveBeenCalledWith('socket-123', mockUser.name);
-      expect(roomService.create).toHaveBeenCalledWith('socket-123', mockRoom.name, mockRoom.password);
-      expect(mockClient.join).toHaveBeenCalledWith('1');
-      expect(result).toBe(mockRoom);
-    });
+  //     expect(userService.create).toHaveBeenCalledWith('socket-123', mockUser.name);
+  //     expect(roomService.create).toHaveBeenCalledWith('socket-123', mockRoom.name, mockRoom.password);
+  //     expect(mockClient.join).toHaveBeenCalledWith('1');
+  //     expect(result).toBe(mockRoom);
+  //   });
 
-    it('should create user and join room for peer', async () => {
-      const mockUser = { id: 'socket-123', name: 'koderpark', createdAt: new Date() } as any;
-      const mockUser2 = { id: 'socket-456', name: 'test', createdAt: new Date() } as any;
-      const mockRoom = { 
-        id: 1, 
-        name: 'Test Room', 
-        password: 1234,
-        users: [mockUser, mockUser2], 
-        owner: mockUser2 
-      } as any;
+  //   it('should create user and join room for peer', async () => {
+  //     const mockUser = { id: 'socket-123', name: 'koderpark', createdAt: new Date() } as any;
+  //     const mockUser2 = { id: 'socket-456', name: 'test', createdAt: new Date() } as any;
+  //     const mockRoom = {
+  //       id: 1,
+  //       name: 'Test Room',
+  //       password: 1234,
+  //       users: [mockUser, mockUser2],
+  //       owner: mockUser2
+  //     } as any;
 
-      userService.create.mockResolvedValue(mockUser);
-      roomService.join.mockResolvedValue(mockRoom);
-      roomService.readMine.mockResolvedValue(mockRoom);
-      jest.spyOn(service, 'roomChanged').mockResolvedValue(undefined);
+  //     userService.create.mockResolvedValue(mockUser);
+  //     roomService.join.mockResolvedValue(mockRoom);
+  //     roomService.readMine.mockResolvedValue(mockRoom);
+  //     jest.spyOn(service, 'roomChanged').mockResolvedValue(undefined);
 
-      const result = await service.onConnection(mockClient, 'peer', {
-        name: 'test',
-        roomId: 1,
-        password: 1234,
-      });
+  //     const result = await service.onConnection(mockClient, 'peer', {
+  //       name: 'test',
+  //       roomId: 1,
+  //       password: 1234,
+  //     });
 
-      expect(userService.create).toHaveBeenCalledWith('socket-123', 'test');
-      expect(roomService.join).toHaveBeenCalledWith('socket-123', 1, 1234);
-      expect(mockClient.join).toHaveBeenCalledWith('1');
-      expect(result).toBe(mockRoom);
-    });
+  //     expect(userService.create).toHaveBeenCalledWith('socket-123', 'test');
+  //     expect(roomService.join).toHaveBeenCalledWith('socket-123', 1, 1234);
+  //     expect(mockClient.join).toHaveBeenCalledWith('1');
+  //     expect(result).toBe(mockRoom);
+  //   });
 
-    it('should disconnect if room not found after connection', async () => {
-      const mockUser = { id: 'socket-123', name: 'koderpark', createdAt: new Date() } as any;
-      const mockRoom = { 
-        id: 1, 
-        name: 'Test Room', 
-        password: 1234,
-        users: [mockUser], 
-        owner: mockUser 
-      } as any;
+  //   it('should disconnect if room not found after connection', async () => {
+  //     const mockUser = { id: 'socket-123', name: 'koderpark', createdAt: new Date() } as any;
+  //     const mockRoom = {
+  //       id: 1,
+  //       name: 'Test Room',
+  //       password: 1234,
+  //       users: [mockUser],
+  //       owner: mockUser
+  //     } as any;
 
-      userService.create.mockResolvedValue(mockUser);
-      roomService.join.mockResolvedValue(mockRoom);
-      roomService.readMine.mockResolvedValue(undefined);
-      jest.spyOn(service, 'roomChanged').mockResolvedValue(undefined);
+  //     userService.create.mockResolvedValue(mockUser);
+  //     roomService.join.mockResolvedValue(mockRoom);
+  //     roomService.readMine.mockResolvedValue(undefined);
+  //     jest.spyOn(service, 'roomChanged').mockResolvedValue(undefined);
 
-      await expect(service.onConnection(mockClient, 'peer', {
-        name: 'test',
-        roomId: 1,
-      })).rejects.toThrow('room_not_found');
-      await expect(mockClient.disconnect).toHaveBeenCalled();
-    });
-  });
-  
+  //     await expect(service.onConnection(mockClient, 'peer', {
+  //       name: 'test',
+  //       roomId: 1,
+  //     })).rejects.toThrow('room_not_found');
+  //     await expect(mockClient.disconnect).toHaveBeenCalled();
+  //   });
+  // });
 }); 

@@ -28,8 +28,17 @@ export class UserService {
   }
 
   async update(id: string, data: Partial<User>): Promise<boolean> {
-    const res = await this.userRepository.update({ id }, data);
-    return res.affected ? true : false;
+    // For relations, we need to use save instead of update
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      return false;
+    }
+
+    // Merge the data with the existing user
+    Object.assign(user, data);
+
+    await this.userRepository.save(user);
+    return true;
   }
 
   async remove(id: string): Promise<boolean> {

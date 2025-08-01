@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   OneToOne,
   PrimaryColumn,
+  JoinColumn,
 } from 'typeorm';
 import { Room } from '../../room/entities/room.entity';
 import { mockRoom } from '../../room/entities/room.entity';
@@ -20,10 +21,18 @@ export class User {
   @Column()
   name: string;
 
-  @ManyToOne(() => Room, (room) => room.users, { onDelete: 'SET NULL' })
+  @ManyToOne(() => Room, (room) => room.users, {
+    onDelete: 'SET NULL',
+    nullable: true,
+  })
+  @JoinColumn()
   room?: Room;
 
-  @OneToOne(() => Room, (room) => room.owner, { onDelete: 'SET NULL' })
+  @OneToOne(() => Room, (room) => room.host, {
+    onDelete: 'SET NULL',
+    nullable: true,
+  })
+  @JoinColumn()
   host?: Room;
 }
 
