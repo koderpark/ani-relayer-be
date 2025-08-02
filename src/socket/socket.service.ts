@@ -7,6 +7,7 @@ import { WebSocketServer } from '@nestjs/websockets';
 interface RoomMetadata {
   id: number;
   name: string;
+  host: string;
   user: {
     id: string;
     name: string;
@@ -32,10 +33,11 @@ export class SocketService {
       return {
         id: room.id,
         name: room.name,
+        host: room.host.id,
         user: room.users.map((user) => ({
           id: user.id,
           name: user.name,
-          isHost: room.host?.id === user.id,
+          isHost: user.id === room.host.id,
         })),
       };
     } catch (error) {
@@ -85,7 +87,7 @@ export class SocketService {
     input: {
       username: string;
       roomId: number;
-      password: number;
+      password?: number;
     },
   ) {
     const user = await this.userService.create(client.id, input.username);

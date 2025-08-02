@@ -33,6 +33,7 @@ export class RoomService {
     });
 
     if (!room) return false;
+    if (room.password === null && password === undefined) return true;
     if (password !== room.password) return false;
     return true;
   }
@@ -42,11 +43,9 @@ export class RoomService {
 
     const owner = await this.userService.read(userId);
 
-    // Create and save the room first
-    const room = this.roomRepository.create({ name, password });
+    const room = this.roomRepository.create({ name, password, host: owner });
     const savedRoom = await this.roomRepository.save(room);
 
-    // Then update the user with the saved room
     await this.userService.update(userId, {
       host: savedRoom,
       room: savedRoom,
@@ -57,7 +56,7 @@ export class RoomService {
 
   async join(userId: string, roomId: number, password?: number): Promise<Room> {
     const user = await this.userService.read(userId, ['room', 'host']);
-    if (user.room) throw new BadRequestException('already_in_room');
+    if (user.host) throw new BadRequestException('already_host');
 
     const room = await this.read(roomId, ['users']);
 
