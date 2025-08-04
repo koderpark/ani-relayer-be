@@ -111,8 +111,7 @@ describe('RoomService', () => {
       expect(mockRoomRepository.create).toHaveBeenCalledWith({
         name: 'Test Room',
         password: 1234,
-        owner: mockUser,
-        users: [mockUser],
+        host: mockUser,
       });
       expect(mockRoomRepository.save).toHaveBeenCalledWith(mockRoom);
       expect(userService.update).toHaveBeenCalledWith('socket-123', {
@@ -124,8 +123,9 @@ describe('RoomService', () => {
   });
 
   describe('join', () => {
-    it('should throw BadRequestException if user already in room', async () => {
-      userService.read.mockResolvedValue({ ...mockUser, room: mockRoom });
+    it('should throw BadRequestException if user is already a host', async () => {
+      userService.read.mockResolvedValue({ ...mockUser, host: mockRoom });
+      jest.spyOn(service, 'read').mockResolvedValue(mockRoom);
       await expect(service.join('socket-123', 1)).rejects.toThrow(
         BadRequestException,
       );
@@ -160,49 +160,6 @@ describe('RoomService', () => {
         room: mockRoom,
       });
       expect(result).toBe(mockRoom);
-    });
-  });
-
-  describe('leave', () => {
-    it('should throw BadRequestException if user not in room', async () => {
-      userService.read.mockResolvedValue({ ...mockUser, room: null });
-      await expect(service.leave('socket-123')).rejects.toThrow(
-        BadRequestException,
-      );
-      expect(userService.read).toHaveBeenCalledWith('socket-123', [
-        'room',
-        'host',
-      ]);
-    });
-
-    it('should remove room if user is host', async () => {
-      userService.read.mockResolvedValue({
-        ...mockUser,
-        room: mockRoom,
-        host: mockRoom,
-      });
-      jest.spyOn(service, 'remove').mockResolvedValue(true);
-
-      const result = await service.leave('socket-123');
-
-      expect(service.remove).toHaveBeenCalledWith('socket-123');
-      expect(result).toBe(true);
-    });
-
-    it('should update user room to null if not host', async () => {
-      userService.read.mockResolvedValue({
-        ...mockUser,
-        room: mockRoom,
-        host: null,
-      });
-      userService.update.mockResolvedValue(true);
-
-      const result = await service.leave('socket-123');
-
-      expect(userService.update).toHaveBeenCalledWith('socket-123', {
-        room: null,
-      });
-      expect(result).toBe(true);
     });
   });
 

@@ -17,6 +17,8 @@ describe('UserService', () => {
   };
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+    
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UserService,
@@ -84,22 +86,41 @@ describe('UserService', () => {
   });
 
   describe('update', () => {
-    it('should return true if update affected rows', async () => {
-      mockUserRepository.update.mockResolvedValue({ affected: 1 } as any);
+    it('should return true if user exists and update succeeds', async () => {
+      const existingUser = { ...mockUser, name: 'koderpark' };
+      mockUserRepository.findOne.mockResolvedValue(existingUser);
+      mockUserRepository.save.mockResolvedValue({
+        ...existingUser,
+        name: 'koderpark2222',
+      });
+
       const result = await service.update('socket-123', {
         name: 'koderpark2222',
       });
-      expect(mockUserRepository.update).toHaveBeenCalledWith(
-        { id: 'socket-123' },
-        { name: 'koderpark2222' },
+
+      expect(mockUserRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 'socket-123' },
+      });
+      expect(mockUserRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'socket-123',
+          name: 'koderpark2222',
+        }),
       );
       expect(result).toBe(true);
     });
-    it('should return false if update affected 0 rows', async () => {
-      mockUserRepository.update.mockResolvedValue({ affected: 0 } as any);
+    
+    it('should return false if user does not exist', async () => {
+      mockUserRepository.findOne.mockResolvedValue(null);
+
       const result = await service.update('socket-123', {
         name: 'koderpark2222',
       });
+
+      expect(mockUserRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 'socket-123' },
+      });
+      expect(mockUserRepository.save).not.toHaveBeenCalled();
       expect(result).toBe(false);
     });
   });
