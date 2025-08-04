@@ -1,13 +1,15 @@
-import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
-import { RoomCreateDto } from './dto/room-create.dto';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { Room } from './entities/room.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UserKeyDto } from 'src/user/dto/user-key.dto';
-import { UserService } from 'src/user/user.service';
-import { RoomUpdateDto } from './dto/room-update.dto';
-import { RoomStatusDto } from './dto/room-status.dto';
-import { RoomPeerDto } from './dto/room-peer.dto';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class RoomService {
@@ -19,47 +21,9 @@ export class RoomService {
     private readonly userService: UserService,
   ) {}
 
-  async create(key: UserKeyDto, body: RoomCreateDto): Promise<Room> {
-    this.logger.log(`create Room ${body.name}`);
-
-    const room = this.roomRepository.create(body);
-    await this.roomRepository.save(room);
-    await this.userService.update(key, { roomId: room.id });
-    return room;
-  }
-
-  async read(id: number): Promise<Room> {
-    return await this.roomRepository.findOneBy({ id });
-  }
-
-  async readAll(): Promise<Room[]> {
-    return await this.roomRepository.find();
-  }
-
-  async readMine(key: UserKeyDto): Promise<Room> {
-    const user = await this.userService.read(key);
-    if (user.roomId == -1) return null;
-
-    return await this.read(user.roomId);
-  }
-
-  async updateMine(key: UserKeyDto, data: RoomUpdateDto): Promise<boolean> {
-    const room = await this.readMine(key);
-    if (!room) return false;
-
-    const res = await this.roomRepository.update(room.id, data);
-    return res.affected ? true : false;
-  }
-
-  async remove(key: UserKeyDto): Promise<boolean> {
-    const room = await this.readMine(key);
-
-    if (!room) return false;
-    if (room.ownerId != key.userId) return false;
-    if ((await this.userService.countMember(room.id)) > 0) return false;
-
-    await this.roomRepository.delete(room.id);
-    return true;
+  async chkHost(userId: string): Promise<boolean> {
+    const user = await this.userService.read(userId, ['host']);
+    return user.host ? true : false;
   }
 
   async chkPW(id: number, password?: number): Promise<boolean> {
@@ -69,70 +33,74 @@ export class RoomService {
     });
 
     if (!room) return false;
-    if (password && room.password != password) return false;
-    if (!password && room.password) return false;
-
+    if (room.password === null && password === undefined) return true;
+    if (password !== room.password) return false;
     return true;
   }
 
-  async peers(key: UserKeyDto): Promise<RoomPeerDto[]> {
-    this.logger.log(`peers`);
+  async create(userId: string, name: string, password?: number): Promise<Room> {
+    this.logger.log(`create Room ${name} by ${userId}`);
 
-    const room = await this.readMine(key);
-    if (!room) return [];
+    const owner = await this.userService.read(userId);
 
-    const member = await this.userService.listMember(room.id);
-    const peers = member.map((member) => {
-      return {
-        id: member.userId,
-        name: member.loginId,
-        isOwner: member.userId == room.ownerId,
-        isMe: member.userId == key.userId,
-      };
+    const room = this.roomRepository.create({ name, password, host: owner });
+    const savedRoom = await this.roomRepository.save(room);
+
+    await this.userService.update(userId, {
+      host: savedRoom,
+      room: savedRoom,
     });
-    return peers;
+
+    return savedRoom;
   }
 
-  async roomStatus(key: UserKeyDto): Promise<RoomStatusDto> {
-    const room = await this.readMine(key);
-    if (!room) return null;
+  async join(userId: string, roomId: number, password?: number): Promise<Room> {
+    const user = await this.userService.read(userId, ['room', 'host']);
+    if (user.host) throw new BadRequestException('already_host');
 
-    return {
-      id: room.id,
-      cntViewer: await this.userService.countMember(room.id),
-      isOwner: room.ownerId == key.userId,
-      name: room.name,
-      peers: await this.peers(key),
-    };
+    const room = await this.read(roomId, ['users']);
+
+    if (!(await this.chkPW(roomId, password)))
+      throw new BadRequestException('wrong_password');
+
+    await this.userService.update(userId, { room });
+    return room;
+  }
+
+  async read(id: number, relations: string[] = []): Promise<Room> {
+    const room = await this.roomRepository.findOne({
+      where: { id },
+      relations,
+    });
+
+    if (!room) throw new NotFoundException();
+    return room;
+  }
+
+  async readMine(userId: string): Promise<Room> {
+    const user = await this.userService.read(userId, ['room']);
+    if (!user.room) throw new NotFoundException();
+    return user.room;
+  }
+
+  async update(userId: string, data: Partial<Room>): Promise<boolean> {
+    const user = await this.userService.read(userId, ['room', 'host']);
+    if (!user.host) throw new HttpException('not_host', HttpStatus.FORBIDDEN);
+
+    const res = await this.roomRepository.update(user.host.id, data);
+    return res.affected ? true : false;
+  }
+
+  async remove(userId: string): Promise<boolean> {
+    const user = await this.userService.read(userId, ['room', 'host']);
+    if (!user.host) throw new HttpException('not_host', HttpStatus.FORBIDDEN);
+
+    await this.roomRepository.delete(user.host.id);
+    return true;
   }
 
   async removeAll(): Promise<boolean> {
     const res = await this.roomRepository.delete({});
     return res.affected ? true : false;
   }
-
-  // async updateVideo(key: UserKeyDto, video: RoomVideoDto) {
-  //   const room = await this.readMine(key);
-  //   if (!room) throw new HttpException('not_in_room', HttpStatus.BAD_REQUEST);
-
-  //   console.log(video);
-  //   // await this.roomRepository.update(room.id, video);
-  //   return true;
-  // }
-
-  // async updateVideoStatus(client: Socket, videoParseDto: VideoParseDto) {
-  //   const key = await this.socketService.clientToKey(client);
-  //   const { vidName, vidUrl, vidEpisode } = videoParseDto;
-
-  //   await this.updateVideo(key, {
-  //     vidName,
-  //     vidUrl,
-  //     vidEpisode,
-  //   });
-
-  //   const room = await this.readMine(key);
-  //   if (!room) return;
-
-  //   await this.socketService.msgExcludeMe(client, 'roomUpdate', room.id);
-  // }
 }

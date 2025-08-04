@@ -13,7 +13,6 @@ import { AppService } from './app.service';
 import { UserService } from './user/user.service';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth } from '@nestjs/swagger';
-import { parseKey } from './utils/parse';
 
 @Controller()
 export class AppController {
@@ -37,9 +36,9 @@ export class AppController {
   }
 
   @ApiBearerAuth('access-token')
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard('api'))
   @Get('/user/read')
   async validate(@Req() req): Promise<any> {
-    return this.userService.read(parseKey(req.user));
+    return this.userService.read(req.user.socketId);
   }
 }

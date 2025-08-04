@@ -1,12 +1,20 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Socket, Server, Namespace } from 'socket.io';
-import { RoomService } from 'src/room/room.service';
-import { UserKeyDto } from 'src/user/dto/user-key.dto';
-import { UserService } from 'src/user/user.service';
-import { AuthService } from 'src/auth/auth.service';
-import { parseKey } from 'src/utils/parse';
-import { VideoParseDto } from './dto/video-parse.dto';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { Socket, Server } from 'socket.io';
+import { RoomService } from '../room/room.service';
+import { UserService } from '../user/user.service';
 import { WebSocketServer } from '@nestjs/websockets';
+
+interface RoomMetadata {
+  id: number;
+  name: string;
+  host: string;
+  user: {
+    id: string;
+    name: string;
+    isHost: boolean;
+  }[];
+}
+
 @Injectable()
 export class SocketService {
   private logger: Logger = new Logger('SocketService');
@@ -15,29 +23,92 @@ export class SocketService {
   server: Server;
 
   constructor(
-    private readonly authService: AuthService,
     private readonly userService: UserService,
+    private readonly roomService: RoomService,
   ) {}
 
-  async msgExcludeMe(client: Socket, eventName: string, body?: any) {
-    const key = await this.clientToKey(client);
-    const user = await this.userService.read(key);
-
-    if (!key) return;
-    if (!user) return;
-
-    client.to(user.roomId.toString()).emit(eventName, body);
+  async roomMetadata(roomId: number): Promise<RoomMetadata | null> {
+    try {
+      const room = await this.roomService.read(roomId, ['users', 'host']);
+      return {
+        id: room.id,
+        name: room.name,
+        host: room.host.id,
+        user: room.users.map((user) => ({
+          id: user.id,
+          name: user.name,
+          isHost: user.id === room.host.id,
+        })),
+      };
+    } catch (error) {
+      return null;
+    }
   }
 
-  async msgInRoom(roomId: number, eventName: string, body?: any) {
+  async msgInRoom(
+    roomId: number,
+    eventName: string,
+    body?: any,
+  ): Promise<void> {
     this.server.to(roomId.toString()).emit(eventName, body);
   }
 
-  async clientToKey(client: Socket): Promise<UserKeyDto> {
-    const token = client.handshake.auth.token;
-    const verify = await this.authService.jwtVerify(token);
-
-    if (!verify) return null;
-    return parseKey(verify);
+  async roomChanged(roomId: number) {
+    this.logger.log(`roomChanged ${roomId}`);
+    const metadata = await this.roomMetadata(roomId);
+    await this.msgInRoom(roomId, 'roomChanged', metadata);
   }
-}
+
+  async onHostConnection(
+    client: Socket,
+    input: {
+      username: string;
+      name: string;
+      password: number;
+    },
+  ) {
+    const user = await this.userService.create(client.id, input.username);
+
+    console.log('checkpoint');
+
+    const room = await this.roomService.create(
+      user.id,
+      input.name,
+      input.password,
+    );
+
+    await client.join(room.id.toString());
+    await this.roomChanged(room.id);
+    return room;
+  }
+
+  async onPeerConnection(
+    client: Socket,
+    input: {
+      username: string;
+      roomId: number;
+      password?: number;
+    },
+  ) {
+    const user = await this.userService.create(client.id, input.username);
+    const room = await this.roomService.join(
+      user.id,
+      input.roomId,
+      input.password,
+    );
+
+    await client.join(room.id.toString());
+    await this.roomChanged(room.id);
+    return room;
+  }
+
+  async onDisconnection(client: Socket): Promise<void> {
+    const user = await this.userService.read(client.id, ['room', 'host']);
+
+    if (user.host) await this.roomService.remove(client.id);
+
+    await this.userService.remove(client.id);
+
+    if (user.room) await this.roomChanged(user.room.id);
+  }
+} 
