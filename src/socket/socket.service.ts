@@ -54,8 +54,8 @@ export class SocketService {
   }
 
   async roomChanged(roomId: number) {
+    this.logger.log(`roomChanged ${roomId}`);
     const metadata = await this.roomMetadata(roomId);
-    this.logger.log(`roomChanged ${JSON.stringify(metadata)}`);
     await this.msgInRoom(roomId, 'roomChanged', metadata);
   }
 
@@ -105,13 +105,10 @@ export class SocketService {
   async onDisconnection(client: Socket): Promise<void> {
     const user = await this.userService.read(client.id, ['room', 'host']);
 
-    if (user.host) {
-      await this.roomService.remove(client.id);
-    } else {
-      await this.roomService.leave(client.id);
-    }
+    if (user.host) await this.roomService.remove(client.id);
 
     await this.userService.remove(client.id);
-    await this.roomChanged(user.room.id);
+
+    if (user.room) await this.roomChanged(user.room.id);
   }
 } 

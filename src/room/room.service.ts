@@ -67,21 +67,6 @@ export class RoomService {
     return room;
   }
 
-  async leave(userId: string): Promise<boolean> {
-    this.logger.log(`leave Room`);
-    const user = await this.userService.read(userId, ['room', 'host']);
-
-    if (!user.room) throw new BadRequestException('not_in_room');
-
-    if (user.host) {
-      await this.remove(userId);
-      return true;
-    }
-
-    // return await this.userService.update(userId, { room: null });
-    return true;
-  }
-
   async read(id: number, relations: string[] = []): Promise<Room> {
     const room = await this.roomRepository.findOne({
       where: { id },
