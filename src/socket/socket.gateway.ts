@@ -44,6 +44,15 @@ export class SocketGateway
     // this.videoService.update(client, video);
   }
 
+  @SubscribeMessage('room/kick')
+  async handleRoomKick(
+    @MessageBody() data: { userId: string },
+    @ConnectedSocket() client: Socket,
+  ): Promise<void> {
+    this.logger.log(`${client.id} kicked ${data.userId}`);
+    await this.socketService.kick(client, data.userId);
+  }
+
   // @SubscribeMessage('updateVid')
   // handleUpdateVid(
   //   @MessageBody() videoParseDto: VideoParseDto,

@@ -30,15 +30,19 @@ export class SocketService {
   async roomMetadata(roomId: number): Promise<RoomMetadata | null> {
     try {
       const room = await this.roomService.read(roomId, ['users', 'host']);
+      const userList = room.users
+        .map((user) => ({
+          id: user.id,
+          name: user.name,
+          isHost: user.id === room.host.id,
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
       return {
         id: room.id,
         name: room.name,
         host: room.host.id,
-        user: room.users.map((user) => ({
-          id: user.id,
-          name: user.name,
-          isHost: user.id === room.host.id,
-        })),
+        user: userList,
       };
     } catch (error) {
       return null;
@@ -111,4 +115,21 @@ export class SocketService {
 
     if (user.room) await this.roomChanged(user.room.id);
   }
-} 
+
+  async kick(client: Socket, userId: string) {
+    try {
+      const targetSocket = this.server.sockets.sockets.get(userId);
+
+      if (!targetSocket) {
+        throw new BadRequestException('User not found');
+      }
+
+      targetSocket.disconnect(true);
+
+      this.logger.log(`User ${userId} has been kicked`);
+    } catch (error) {
+      this.logger.error(`Failed to kick user ${userId}:`, error.message);
+      throw error;
+    }
+  }
+}
