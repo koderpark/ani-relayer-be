@@ -40,8 +40,8 @@ export class SocketGateway
     @MessageBody() video: Video,
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
-    this.logger.log(`${client.id} sended ${video}`);
-    // this.videoService.update(client, video);
+    this.logger.log(`${client.id} sended ${JSON.stringify(video)}`);
+    this.socketService.videoChanged(client, video);
   }
 
   @SubscribeMessage('room/kick')

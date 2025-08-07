@@ -3,6 +3,8 @@ import { Socket, Server } from 'socket.io';
 import { RoomService } from '../room/room.service';
 import { UserService } from '../user/user.service';
 import { WebSocketServer } from '@nestjs/websockets';
+import { Video } from 'src/room/entities/room.entity';
+import { VideoService } from 'src/video/video.service';
 
 interface RoomMetadata {
   id: number;
@@ -25,6 +27,7 @@ export class SocketService {
   constructor(
     private readonly userService: UserService,
     private readonly roomService: RoomService,
+    private readonly videoService: VideoService,
   ) {}
 
   async roomMetadata(roomId: number): Promise<RoomMetadata | null> {
@@ -55,6 +58,15 @@ export class SocketService {
     body?: any,
   ): Promise<void> {
     this.server.to(roomId.toString()).emit(eventName, body);
+  }
+
+  async msgExcludeMe(
+    client: Socket,
+    eventName: string,
+    body?: any,
+  ): Promise<void> {
+    const user = await this.userService.read(client.id, ['room']);
+    client.broadcast.to(user.room.id.toString()).emit(eventName, body);
   }
 
   async roomChanged(roomId: number) {
@@ -131,5 +143,18 @@ export class SocketService {
       this.logger.error(`Failed to kick user ${userId}:`, error.message);
       throw error;
     }
+  }
+
+  async videoChanged(client: Socket, video: Video) {
+    this.logger.log(`videoChanged service`);
+
+    const user = await this.userService.read(client.id, ['room', 'host']);
+    if (!user.host) {
+      this.logger.log(`${JSON.stringify(user)} is not host`);
+      return;
+    }
+
+    await this.videoService.update(client, video);
+    await this.msgExcludeMe(client, 'videoChanged', video);
   }
 }
