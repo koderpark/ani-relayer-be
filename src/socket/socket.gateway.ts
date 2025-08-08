@@ -12,7 +12,7 @@ import { Server, Socket } from 'socket.io';
 import { SocketService } from './socket.service';
 import { Video } from '../room/entities/room.entity';
 
-@WebSocketGateway(8081, { cors: { origin: '*' } })
+@WebSocketGateway(0, { cors: { origin: '*' } })
 export class SocketGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
