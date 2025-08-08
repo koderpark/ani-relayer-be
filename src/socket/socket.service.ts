@@ -3,8 +3,8 @@ import { Socket, Server } from 'socket.io';
 import { RoomService } from '../room/room.service';
 import { UserService } from '../user/user.service';
 import { WebSocketServer } from '@nestjs/websockets';
-import { Video } from 'src/room/entities/room.entity';
-import { VideoService } from 'src/video/video.service';
+import { Video } from '../room/entities/room.entity';
+import { VideoService } from '../video/video.service';
 
 interface RoomMetadata {
   id: number;

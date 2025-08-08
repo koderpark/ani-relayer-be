@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { SocketService } from './socket.service';
 import { UserService } from '../user/user.service';
 import { RoomService } from '../room/room.service';
+import { VideoService } from '../video/video.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Socket, Server } from 'socket.io';
 
@@ -9,6 +10,7 @@ describe('SocketService', () => {
   let service: SocketService;
   let userService: jest.Mocked<UserService>;
   let roomService: jest.Mocked<RoomService>;
+  let videoService: jest.Mocked<VideoService>;
   let mockServer: jest.Mocked<Server>;
   let mockSocket: jest.Mocked<Socket>;
 
@@ -36,12 +38,19 @@ describe('SocketService', () => {
             leave: jest.fn(),
           },
         },
+        {
+          provide: VideoService,
+          useValue: {
+            update: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<SocketService>(SocketService);
     userService = module.get(UserService);
     roomService = module.get(RoomService);
+    videoService = module.get(VideoService);
 
     // Mock the WebSocket server
     mockServer = {
