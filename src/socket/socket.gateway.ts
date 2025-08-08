@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { BadRequestException, Logger } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -7,18 +7,23 @@ import {
   OnGatewayInit,
   SubscribeMessage,
   WebSocketGateway,
-  WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { SocketService } from './socket.service';
+import { Video } from '../room/entities/room.entity';
 
 @WebSocketGateway(8081, { cors: { origin: '*' } })
 export class SocketGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
-  constructor() {}
+  constructor(private readonly socketService: SocketService) {}
 
-  @WebSocketServer() server: Server;
   private logger: Logger = new Logger('websocket');
+
+  afterInit(server: Server) {
+    this.logger.log('웹소켓 서버 초기화 ✅');
+    this.socketService.server = server;
+  }
 
   @SubscribeMessage('events')
   handleEvent(
@@ -26,21 +31,80 @@ export class SocketGateway
     @ConnectedSocket() client: Socket,
   ): void {
     this.logger.log(`${client.id} sended ${data}`);
-    this.server.emit('event', data);
+    this.socketService.server.emit('event', data);
     // return data;
   }
 
-  afterInit(server: Server) {
-    this.logger.log('웹소켓 서버 초기화 ✅');
+  @SubscribeMessage('video')
+  async handleVideo(
+    @MessageBody() video: Video,
+    @ConnectedSocket() client: Socket,
+  ): Promise<void> {
+    this.logger.log(`${client.id} sended ${JSON.stringify(video)}`);
+    this.socketService.videoChanged(client, video);
   }
 
+  @SubscribeMessage('room/kick')
+  async handleRoomKick(
+    @MessageBody() data: { userId: string },
+    @ConnectedSocket() client: Socket,
+  ): Promise<void> {
+    this.logger.log(`${client.id} kicked ${data.userId}`);
+    await this.socketService.kick(client, data.userId);
+  }
+
+  // @SubscribeMessage('updateVid')
+  // handleUpdateVid(
+  //   @MessageBody() videoParseDto: VideoParseDto,
+  //   @ConnectedSocket() client: Socket,
+  // ): void {
+  //   this.logger.log(`updateVid`);
+  //   this.roomService.updateVideoStatus(client, videoParseDto);
+  // }
+
   async handleConnection(client: Socket): Promise<void> {
-    const socketId = client.id;
-    this.logger.log(`${socketId} connected`);
+    const { type } = client.handshake.auth;
+
+    this.logger.log(`${client.id} connected`);
+
+    try {
+      if (type === 'host') await this.handleHostConnection(client);
+      else if (type === 'peer') await this.handlePeerConnection(client);
+      else throw new BadRequestException('invalid_input_type');
+    } catch (error) {
+      this.logger.error(error);
+      client.disconnect();
+    }
+    return;
+  }
+
+  async handleHostConnection(client: Socket): Promise<void> {
+    const { username, name, password } = client.handshake.auth;
+
+    console.log('handleHostConnection', username, name, password);
+
+    await this.socketService.onHostConnection(client, {
+      username: username as string,
+      name: name as string,
+      password: password ? Number(password) : undefined,
+    });
+  }
+
+  async handlePeerConnection(client: Socket): Promise<void> {
+    const { username, roomId, password } = client.handshake.auth;
+
+    console.log('handlePeerConnection', username, roomId, password);
+
+    await this.socketService.onPeerConnection(client, {
+      username: username as string,
+      roomId: Number(roomId),
+      password: password ? Number(password) : undefined,
+    });
   }
 
   async handleDisconnect(client: Socket): Promise<void> {
-    const socketId = client.id;
-    this.logger.log(`${socketId} disconnected`);
+    this.logger.log(`${client.id} disconnected`);
+    await this.socketService.onDisconnection(client);
+    return;
   }
 }

@@ -1,19 +1,19 @@
-import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
-import { RoomCreateDto } from './dto/room-create.dto';
-import { RoomUpdateDto } from './dto/room-update.dto';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { Room } from './entities/room.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { RoomQueryDto } from './dto/room-query.dto';
-import { UserKeyDto } from 'src/user/dto/user-key.dto';
-import { UserService } from 'src/user/user.service';
-import { RoomMem } from './entities/room-mem.entity';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class RoomService {
   private logger: Logger = new Logger('RoomService');
-
-  RoomList: Map<number, RoomMem>;
 
   constructor(
     @InjectRepository(Room)
@@ -21,69 +21,86 @@ export class RoomService {
     private readonly userService: UserService,
   ) {}
 
-  async create(key: UserKeyDto, body: RoomCreateDto): Promise<RoomQueryDto> {
-    this.logger.log(`create ${body.roomName}`);
-    const chk = await this.userService.read(key);
-    if (chk.roomId != -1)
-      throw new HttpException('already_in_room', HttpStatus.BAD_REQUEST);
+  async chkHost(userId: string): Promise<boolean> {
+    const user = await this.userService.read(userId, ['host']);
+    return user.host ? true : false;
+  }
 
-    const fill = {
-      ownerId: key.userId,
-      code: await this.generateCode(),
-      cntViewer: 1,
-      roomName: body.roomName,
-    };
+  async chkPW(id: number, password?: number): Promise<boolean> {
+    const room = await this.roomRepository.findOne({
+      where: { id },
+      select: ['id', 'password'],
+    });
 
-    const room = this.roomRepository.create(fill);
-    await this.roomRepository.save(room);
-    await this.userService.update(key, { roomId: room.roomId });
+    if (!room) return false;
+    if (room.password === null && password === undefined) return true;
+    if (password !== room.password) return false;
+    return true;
+  }
 
+  async create(userId: string, name: string, password?: number): Promise<Room> {
+    this.logger.log(`create Room ${name} by ${userId}`);
+
+    const owner = await this.userService.read(userId);
+
+    const room = this.roomRepository.create({ name, password, host: owner });
+    const savedRoom = await this.roomRepository.save(room);
+
+    await this.userService.update(userId, {
+      host: savedRoom,
+      room: savedRoom,
+    });
+
+    return savedRoom;
+  }
+
+  async join(userId: string, roomId: number, password?: number): Promise<Room> {
+    const user = await this.userService.read(userId, ['room', 'host']);
+    if (user.host) throw new BadRequestException('already_host');
+
+    const room = await this.read(roomId, ['users']);
+
+    if (!(await this.chkPW(roomId, password)))
+      throw new BadRequestException('wrong_password');
+
+    await this.userService.update(userId, { room });
     return room;
   }
 
-  async read(id: number): Promise<RoomQueryDto | null> {
-    const room = await this.roomRepository.findOneBy({ roomId: id });
-    if (!room) return null;
+  async read(id: number, relations: string[] = []): Promise<Room> {
+    const room = await this.roomRepository.findOne({
+      where: { id },
+      relations,
+    });
+
+    if (!room) throw new NotFoundException();
     return room;
   }
 
-  async readAll(): Promise<RoomQueryDto[]> {
-    const room = await this.roomRepository.find();
-    return room; // Todo: decorate&filter response
+  async readMine(userId: string): Promise<Room> {
+    const user = await this.userService.read(userId, ['room']);
+    if (!user.room) throw new NotFoundException();
+    return user.room;
   }
 
-  update(id: number, updateRoomDto: RoomUpdateDto) {
-    return `This action updates a #${id} room`;
+  async update(userId: string, data: Partial<Room>): Promise<boolean> {
+    const user = await this.userService.read(userId, ['room', 'host']);
+    if (!user.host) throw new HttpException('not_host', HttpStatus.FORBIDDEN);
+
+    const res = await this.roomRepository.update(user.host.id, data);
+    return res.affected ? true : false;
   }
 
-  async exit(key: UserKeyDto) {
-    const user = await this.userService.read(key);
-    if (user.roomId == -1)
-      throw new HttpException('not_in_room', HttpStatus.BAD_REQUEST);
+  async remove(userId: string): Promise<boolean> {
+    const user = await this.userService.read(userId, ['room', 'host']);
+    if (!user.host) throw new HttpException('not_host', HttpStatus.FORBIDDEN);
 
-    const room = await this.roomRepository.findOneBy({ roomId: user.roomId });
-    if (!room)
-      throw new HttpException('room_not_found', HttpStatus.BAD_REQUEST);
-
-    await this.userService.update(key, { roomId: -1 });
-
-    if (room.ownerId == user.userId) {
-      await this.roomRepository.delete(user.roomId);
-    } else {
-      await this.userService.update(key, { roomId: -1 });
-      await this.roomRepository.update(user.roomId, {
-        cntViewer: room.cntViewer - 1,
-      });
-    }
+    await this.roomRepository.delete(user.host.id);
+    return true;
   }
 
-  async generateCode(): Promise<number> {
-    // make a random non-colide code
-    return Math.random() * 100000;
-  }
-
-  async getMyRoom(key: UserKeyDto): Promise<number> {
-    const user = await this.userService.read(key);
-    return user.roomId;
+  async removeAll(): Promise<boolean> {
+    const res = await this.roomRepository.delete({});
+    return res.affected ? true : false;
   }
 }

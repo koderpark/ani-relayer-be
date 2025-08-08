@@ -1,29 +1,71 @@
-import { Entity, Column, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  Unique,
+  UpdateDateColumn,
+  OneToMany,
+  OneToOne,
+  JoinColumn,
+} from 'typeorm';
+import { mockUser, User } from '../../user/entities/user.entity';
 
 @Entity()
-@Unique(['code'])
 export class Room {
   @PrimaryGeneratedColumn() // PK
-  roomId: number;
+  id: number;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 
   @Column()
-  ownerId: number;
+  name: string;
 
-  @Column() // random-generate digit code to login.
-  code: number;
+  @Column({ default: null, select: false })
+  password?: number;
 
-  @Column({ default: 1 })
-  cntViewer: number;
+  @Column({ default: null })
+  vidTitle: string;
 
-  @Column()
-  roomName: string;
+  @Column({ default: null })
+  vidEpisode: string;
 
-  @Column({ default: '' })
-  vidName: string;
+  @Column({ type: 'json', default: null })
+  vidData: VidData;
 
-  @Column({ default: '' })
-  vidUrl: string;
+  @OneToMany(() => User, (user) => user.room, { nullable: true })
+  @JoinColumn()
+  users: User[];
 
-  @Column({ default: -1 })
-  vidEpisode: number;
+  @OneToOne(() => User, (user) => user.host, { nullable: true })
+  @JoinColumn()
+  host: User;
 }
+
+export interface VidData {
+  url: string;
+  speed: number;
+  time: number;
+  isPaused: boolean;
+}
+
+export interface Video {
+  title: string;
+  episode: string;
+  url: string;
+  speed: number;
+  time: number;
+  isPaused: boolean;
+}
+
+export const mockRoom: Room = {
+  id: 1,
+  updatedAt: new Date(),
+  name: 'Test Room',
+  password: 1234,
+  vidTitle: null,
+  vidEpisode: null,
+  vidData: null,
+  users: [mockUser],
+  host: mockUser,
+};
