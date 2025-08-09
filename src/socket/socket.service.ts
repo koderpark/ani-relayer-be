@@ -85,8 +85,6 @@ export class SocketService {
   ) {
     const user = await this.userService.create(client.id, input.username);
 
-    console.log('checkpoint');
-
     const room = await this.roomService.create(
       user.id,
       input.name,
