@@ -31,6 +31,7 @@ export interface PublicRoom {
   userCount: number; // count
   vidTitle: string;
   vidEpisode: string;
+  isLocked: boolean;
 }
 
 @Injectable()
@@ -152,6 +153,11 @@ export class RoomService {
   }
 
   async publicRoom(room: Room): Promise<PublicRoom> {
+    const password = await this.roomRepository.findOne({
+      where: { id: room.id },
+      select: ['password'],
+    });
+
     return {
       id: room.id,
       name: room.name,
@@ -159,6 +165,7 @@ export class RoomService {
       userCount: room.users.length,
       vidTitle: room.vidTitle,
       vidEpisode: room.vidEpisode,
+      isLocked: password !== null,
     };
   }
 

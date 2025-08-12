@@ -17,7 +17,7 @@ import { Request } from 'express';
 export class RoomController {
   constructor(private readonly roomService: RoomService) {}
 
-  @Get()
+  @Get('public')
   async findAll(): Promise<PublicRoom[]> {
     return this.roomService.readAllPublic();
   }
