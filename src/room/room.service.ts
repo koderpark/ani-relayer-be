@@ -155,7 +155,7 @@ export class RoomService {
   async publicRoom(room: Room): Promise<PublicRoom> {
     const password = await this.roomRepository.findOne({
       where: { id: room.id },
-      select: ['password'],
+      select: ['id', 'password'],
     });
 
     return {
@@ -165,7 +165,7 @@ export class RoomService {
       userCount: room.users.length,
       vidTitle: room.vidTitle,
       vidEpisode: room.vidEpisode,
-      isLocked: password !== null,
+      isLocked: password.password !== null,
     };
   }
 

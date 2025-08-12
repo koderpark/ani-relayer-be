@@ -19,6 +19,7 @@ describe('RoomService', () => {
     create: jest.fn(),
     save: jest.fn(),
     findOne: jest.fn(),
+    find: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
   };
@@ -29,6 +30,9 @@ describe('RoomService', () => {
     Object.values(mockRoomRepository).forEach(
       (fn) => fn.mockReset && fn.mockReset(),
     );
+
+    // Mock removeAll to avoid constructor issues
+    mockRoomRepository.delete.mockResolvedValue({ affected: 0 });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -50,8 +54,7 @@ describe('RoomService', () => {
     service = module.get<RoomService>(RoomService);
     userService = module.get(UserService);
 
-    // Restore all spies after each test
-    jest.restoreAllMocks();
+    // Don't clear mocks here as it interferes with the default mock setup
   });
 
   it('should be defined', () => {
@@ -268,6 +271,248 @@ describe('RoomService', () => {
       mockRoomRepository.delete.mockResolvedValue({ affected: 0 } as any);
       const result = await service.removeAll();
       expect(result).toBe(false);
+    });
+  });
+
+  describe('roomMetadata', () => {
+    it('should return room metadata successfully', async () => {
+      const mockUsers = [
+        { id: 'user1', name: 'Alice' },
+        { id: 'user2', name: 'Bob' },
+        { id: 'user3', name: 'Charlie' },
+      ];
+      const mockHost = { id: 'user1', name: 'Alice' };
+      const mockRoom = {
+        id: 1,
+        name: 'Test Room',
+        users: mockUsers,
+        host: mockHost,
+      };
+
+      jest.spyOn(service, 'read').mockResolvedValue(mockRoom as any);
+
+      const result = await service.roomMetadata(1);
+
+      expect(service.read).toHaveBeenCalledWith(1, ['users', 'host']);
+      expect(result).toEqual({
+        id: 1,
+        name: 'Test Room',
+        host: 'user1',
+        user: [
+          { id: 'user1', name: 'Alice', isHost: true },
+          { id: 'user2', name: 'Bob', isHost: false },
+          { id: 'user3', name: 'Charlie', isHost: false },
+        ],
+      });
+    });
+
+    it('should return null when room read fails', async () => {
+      jest
+        .spyOn(service, 'read')
+        .mockRejectedValue(new Error('Database error'));
+
+      const result = await service.roomMetadata(1);
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when room not found', async () => {
+      jest.spyOn(service, 'read').mockRejectedValue(new NotFoundException());
+
+      const result = await service.roomMetadata(1);
+
+      expect(result).toBeNull();
+    });
+
+    it('should handle empty users array', async () => {
+      const mockRoom = {
+        id: 1,
+        name: 'Empty Room',
+        users: [],
+        host: { id: 'host1', name: 'Host' },
+      };
+
+      jest.spyOn(service, 'read').mockResolvedValue(mockRoom as any);
+
+      const result = await service.roomMetadata(1);
+
+      expect(result).toEqual({
+        id: 1,
+        name: 'Empty Room',
+        host: 'host1',
+        user: [],
+      });
+    });
+
+    it('should sort users alphabetically by name', async () => {
+      const mockUsers = [
+        { id: 'user3', name: 'Zebra' },
+        { id: 'user1', name: 'Alice' },
+        { id: 'user2', name: 'Bob' },
+      ];
+      const mockHost = { id: 'user1', name: 'Alice' };
+      const mockRoom = {
+        id: 1,
+        name: 'Test Room',
+        users: mockUsers,
+        host: mockHost,
+      };
+
+      jest.spyOn(service, 'read').mockResolvedValue(mockRoom as any);
+
+      const result = await service.roomMetadata(1);
+
+      expect(result.user.map((u) => u.name)).toEqual(['Alice', 'Bob', 'Zebra']);
+    });
+  });
+
+  describe('publicRoom', () => {
+    it('should return public room data for unlocked room', async () => {
+      const mockRoom = {
+        id: 1,
+        name: 'Test Room',
+        host: { id: '1', name: 'Host User', createdAt: new Date() },
+        users: [
+          { id: '1', name: 'User 1', createdAt: new Date() },
+          { id: '2', name: 'User 2', createdAt: new Date() },
+        ],
+      };
+
+      // Mock the repository to return null password (unlocked room)
+      mockRoomRepository.findOne.mockResolvedValue({
+        id: 1,
+        password: null,
+      } as any);
+
+      const result = await service.publicRoom(mockRoom as any);
+
+      expect(mockRoomRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 1 },
+        select: ['id', 'password'],
+      });
+
+      expect(result).toEqual({
+        id: 1,
+        name: 'Test Room',
+        host: 'Host User',
+        userCount: 2,
+        isLocked: false,
+        vidEpisode: undefined,
+        vidTitle: undefined,
+      });
+    });
+
+    it('should return public room data for locked room', async () => {
+      const mockRoom = {
+        id: 1,
+        name: 'Test Room',
+        host: { name: 'Host User' },
+        users: [{ id: '1' }],
+      };
+
+      mockRoomRepository.findOne.mockResolvedValue({ password: 1234 });
+
+      const result = await service.publicRoom(mockRoom as any);
+
+      expect(result.isLocked).toBe(true);
+    });
+
+    it('should handle room with no video metadata', async () => {
+      const mockRoom = {
+        id: 1,
+        name: 'Test Room',
+        host: { name: 'Host User' },
+        users: [],
+        vidTitle: null,
+        vidEpisode: null,
+      };
+
+      mockRoomRepository.findOne.mockResolvedValue({ password: null });
+
+      const result = await service.publicRoom(mockRoom as any);
+
+      expect(result.vidTitle).toBeNull();
+      expect(result.vidEpisode).toBeNull();
+      expect(result.userCount).toBe(0);
+      expect(result.isLocked).toBe(false); // Should be unlocked
+    });
+  });
+
+  describe('readAllPublic', () => {
+    it('should return all public rooms', async () => {
+      const mockRooms = [
+        {
+          id: 1,
+          name: 'Room 1',
+          host: { name: 'Host 1' },
+          users: [{ id: '1' }],
+          vidTitle: 'Video 1',
+          vidEpisode: 'Episode 1',
+        },
+        {
+          id: 2,
+          name: 'Room 2',
+          host: { name: 'Host 2' },
+          users: [{ id: '2' }, { id: '3' }],
+          vidTitle: 'Video 2',
+          vidEpisode: 'Episode 2',
+        },
+      ];
+
+      mockRoomRepository.find.mockResolvedValue(mockRooms as any);
+      jest.spyOn(service, 'publicRoom').mockResolvedValue({
+        id: 1,
+        name: 'Room 1',
+        host: 'Host 1',
+        userCount: 1,
+        vidTitle: 'Video 1',
+        vidEpisode: 'Episode 1',
+        isLocked: false,
+      });
+
+      const result = await service.readAllPublic();
+
+      expect(mockRoomRepository.find).toHaveBeenCalledWith({
+        relations: ['users', 'host'],
+      });
+      expect(service.publicRoom).toHaveBeenCalledTimes(2);
+      expect(result).toHaveLength(2);
+    });
+
+    it('should return empty array when no rooms exist', async () => {
+      mockRoomRepository.find.mockResolvedValue([]);
+
+      const result = await service.readAllPublic();
+
+      expect(result).toEqual([]);
+    });
+
+    it('should handle single room', async () => {
+      const mockRooms = [
+        {
+          id: 1,
+          name: 'Single Room',
+          host: { name: 'Single Host' },
+          users: [{ id: '1' }],
+          vidTitle: 'Single Video',
+          vidEpisode: 'Episode 1',
+        },
+      ];
+
+      mockRoomRepository.find.mockResolvedValue(mockRooms as any);
+      jest.spyOn(service, 'publicRoom').mockResolvedValue({
+        id: 1,
+        name: 'Single Room',
+        host: 'Single Host',
+        userCount: 1,
+        vidTitle: 'Single Video',
+        vidEpisode: 'Episode 1',
+        isLocked: false,
+      });
+
+      const result = await service.readAllPublic();
+
+      expect(result).toHaveLength(1);
     });
   });
 });
