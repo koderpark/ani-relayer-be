@@ -140,4 +140,208 @@ describe('UserService', () => {
       expect(result).toBe(false);
     });
   });
+
+  describe('edge cases and error handling', () => {
+    it('should handle create with empty name', async () => {
+      mockUserRepository.create.mockReturnValue({ ...mockUser, name: '' });
+      mockUserRepository.save.mockResolvedValue({ ...mockUser, name: '' });
+
+      const result = await service.create('socket-123', '');
+
+      expect(mockUserRepository.create).toHaveBeenCalledWith({
+        id: 'socket-123',
+        name: '',
+      });
+      expect(result.name).toBe('');
+    });
+
+    it('should handle create with very long name', async () => {
+      const longName = 'A'.repeat(1000);
+      mockUserRepository.create.mockReturnValue({
+        ...mockUser,
+        name: longName,
+      });
+      mockUserRepository.save.mockResolvedValue({
+        ...mockUser,
+        name: longName,
+      });
+
+      const result = await service.create('socket-123', longName);
+
+      expect(result.name).toBe(longName);
+    });
+
+    it('should handle create with special characters in name', async () => {
+      const specialName = 'User with Special Chars: !@#$%^&*()_+-=[]{}|;:,.<>?';
+      mockUserRepository.create.mockReturnValue({
+        ...mockUser,
+        name: specialName,
+      });
+      mockUserRepository.save.mockResolvedValue({
+        ...mockUser,
+        name: specialName,
+      });
+
+      const result = await service.create('socket-123', specialName);
+
+      expect(result.name).toBe(specialName);
+    });
+
+    it('should handle read with empty string ID', async () => {
+      mockUserRepository.findOne.mockResolvedValue(undefined);
+
+      await expect(service.read('')).rejects.toThrow('user_not_found');
+      expect(mockUserRepository.findOne).toHaveBeenCalledWith({
+        where: { id: '' },
+        relations: [],
+      });
+    });
+
+    it('should handle read with very long ID', async () => {
+      const longId = 'A'.repeat(1000);
+      mockUserRepository.findOne.mockResolvedValue(undefined);
+
+      await expect(service.read(longId)).rejects.toThrow('user_not_found');
+      expect(mockUserRepository.findOne).toHaveBeenCalledWith({
+        where: { id: longId },
+        relations: [],
+      });
+    });
+
+    it('should handle read with special characters in ID', async () => {
+      const specialId = 'socket-123!@#$%^&*()_+-=[]{}|;:,.<>?';
+      mockUserRepository.findOne.mockResolvedValue(undefined);
+
+      await expect(service.read(specialId)).rejects.toThrow('user_not_found');
+      expect(mockUserRepository.findOne).toHaveBeenCalledWith({
+        where: { id: specialId },
+        relations: [],
+      });
+    });
+
+    it('should handle update with empty string ID', async () => {
+      mockUserRepository.findOne.mockResolvedValue(null);
+
+      const result = await service.update('', { name: 'new name' });
+
+      expect(result).toBe(false);
+      expect(mockUserRepository.findOne).toHaveBeenCalledWith({
+        where: { id: '' },
+      });
+    });
+
+    it('should handle update with null data', async () => {
+      const existingUser = { ...mockUser, name: 'koderpark' };
+      mockUserRepository.findOne.mockResolvedValue(existingUser);
+      mockUserRepository.save.mockResolvedValue(existingUser);
+
+      const result = await service.update('socket-123', null);
+
+      expect(result).toBe(true);
+      expect(mockUserRepository.save).toHaveBeenCalledWith(existingUser);
+    });
+
+    it('should handle update with undefined data', async () => {
+      const existingUser = { ...mockUser, name: 'koderpark' };
+      mockUserRepository.findOne.mockResolvedValue(existingUser);
+      mockUserRepository.save.mockResolvedValue(existingUser);
+
+      const result = await service.update('socket-123', undefined);
+
+      expect(result).toBe(true);
+      expect(mockUserRepository.save).toHaveBeenCalledWith(existingUser);
+    });
+
+    it('should handle update with empty object data', async () => {
+      const existingUser = { ...mockUser, name: 'koderpark' };
+      mockUserRepository.findOne.mockResolvedValue(existingUser);
+      mockUserRepository.save.mockResolvedValue(existingUser);
+
+      const result = await service.update('socket-123', {});
+
+      expect(result).toBe(true);
+      expect(mockUserRepository.save).toHaveBeenCalledWith(existingUser);
+    });
+
+    it('should handle update with all user properties', async () => {
+      const existingUser = { ...mockUser, name: 'koderpark' };
+      const updateData = {
+        name: 'new name',
+        roomId: 999,
+        hostId: 888,
+        createdAt: new Date('2023-01-01'),
+      };
+      const updatedUser = { ...existingUser, ...updateData };
+
+      mockUserRepository.findOne.mockResolvedValue(existingUser);
+      mockUserRepository.save.mockResolvedValue(updatedUser);
+
+      const result = await service.update('socket-123', updateData);
+
+      expect(result).toBe(true);
+      expect(mockUserRepository.save).toHaveBeenCalledWith(updatedUser);
+    });
+
+    it('should handle remove with empty string ID', async () => {
+      mockUserRepository.delete.mockResolvedValue({ affected: 0 });
+
+      const result = await service.remove('');
+
+      expect(result).toBe(false);
+      expect(mockUserRepository.delete).toHaveBeenCalledWith({ id: '' });
+    });
+
+    it('should handle remove with very long ID', async () => {
+      const longId = 'A'.repeat(1000);
+      mockUserRepository.delete.mockResolvedValue({ affected: 0 });
+
+      const result = await service.remove(longId);
+
+      expect(result).toBe(false);
+      expect(mockUserRepository.delete).toHaveBeenCalledWith({ id: longId });
+    });
+
+    it('should handle database errors gracefully', async () => {
+      mockUserRepository.findOne.mockRejectedValue(
+        new Error('Database connection failed'),
+      );
+
+      await expect(service.read('socket-123')).rejects.toThrow(
+        'Database connection failed',
+      );
+    });
+
+    it('should handle update database errors gracefully', async () => {
+      const existingUser = { ...mockUser, name: 'koderpark' };
+      mockUserRepository.findOne.mockResolvedValue(existingUser);
+      mockUserRepository.save.mockRejectedValue(
+        new Error('Save operation failed'),
+      );
+
+      await expect(
+        service.update('socket-123', { name: 'new name' }),
+      ).rejects.toThrow('Save operation failed');
+    });
+
+    it('should handle remove database errors gracefully', async () => {
+      mockUserRepository.delete.mockRejectedValue(
+        new Error('Delete operation failed'),
+      );
+
+      await expect(service.remove('socket-123')).rejects.toThrow(
+        'Delete operation failed',
+      );
+    });
+
+    it('should handle create database errors gracefully', async () => {
+      mockUserRepository.create.mockReturnValue(mockUser);
+      mockUserRepository.save.mockRejectedValue(
+        new Error('Create operation failed'),
+      );
+
+      await expect(service.create('socket-123', 'koderpark')).rejects.toThrow(
+        'Create operation failed',
+      );
+    });
+  });
 });

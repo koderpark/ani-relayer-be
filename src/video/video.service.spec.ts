@@ -192,5 +192,185 @@ describe('VideoService', () => {
         vidData: expectedVidData,
       });
     });
+
+    it('should handle video with null values', async () => {
+      // Arrange
+      const hostUser = { ...mockUser, host: { id: 1 } } as any;
+      const videoWithNullValues: Video = {
+        title: null,
+        episode: null,
+        url: null,
+        speed: null,
+        time: null,
+        isPaused: null,
+      };
+      const expectedVidData: VidData = {
+        url: null,
+        speed: null,
+        time: null,
+        isPaused: null,
+      };
+
+      jest.spyOn(userService, 'read').mockResolvedValue(hostUser);
+      jest.spyOn(roomService, 'update').mockResolvedValue(true);
+
+      // Act
+      await service.update(mockSocket, videoWithNullValues);
+
+      // Assert
+      expect(roomService.update).toHaveBeenCalledWith(mockSocket.id, {
+        vidTitle: null,
+        vidEpisode: null,
+        vidData: expectedVidData,
+      });
+    });
+
+    it('should handle video with undefined values', async () => {
+      // Arrange
+      const hostUser = { ...mockUser, host: { id: 1 } } as any;
+      const videoWithUndefinedValues: Video = {
+        title: undefined,
+        episode: undefined,
+        url: undefined,
+        speed: undefined,
+        time: undefined,
+        isPaused: undefined,
+      };
+      const expectedVidData: VidData = {
+        url: undefined,
+        speed: undefined,
+        time: undefined,
+        isPaused: undefined,
+      };
+
+      jest.spyOn(userService, 'read').mockResolvedValue(hostUser);
+      jest.spyOn(roomService, 'update').mockResolvedValue(true);
+
+      // Act
+      await service.update(mockSocket, videoWithUndefinedValues);
+
+      // Assert
+      expect(roomService.update).toHaveBeenCalledWith(mockSocket.id, {
+        vidTitle: undefined,
+        vidEpisode: undefined,
+        vidData: expectedVidData,
+      });
+    });
+
+    it('should handle user service read failure', async () => {
+      // Arrange
+      jest.spyOn(userService, 'read').mockRejectedValue(new Error('User service error'));
+
+      // Act & Assert
+      await expect(service.update(mockSocket, mockVideo)).rejects.toThrow('User service error');
+      expect(roomService.update).not.toHaveBeenCalled();
+    });
+
+    it('should handle user service read throwing NotFoundException', async () => {
+      // Arrange
+      jest.spyOn(userService, 'read').mockRejectedValue(new Error('user_not_found'));
+
+      // Act & Assert
+      await expect(service.update(mockSocket, mockVideo)).rejects.toThrow('user_not_found');
+      expect(roomService.update).not.toHaveBeenCalled();
+    });
+
+    it('should handle video with special characters in title and episode', async () => {
+      // Arrange
+      const hostUser = { ...mockUser, host: { id: 1 } } as any;
+      const videoWithSpecialChars: Video = {
+        title: 'Anime Title with Special Chars: !@#$%^&*()',
+        episode: 'Episode 1 - Part A & B',
+        url: 'https://example.com/video with spaces.mp4',
+        speed: 1.0,
+        time: 120,
+        isPaused: false,
+      };
+      const expectedVidData: VidData = {
+        url: 'https://example.com/video with spaces.mp4',
+        speed: 1.0,
+        time: 120,
+        isPaused: false,
+      };
+
+      jest.spyOn(userService, 'read').mockResolvedValue(hostUser);
+      jest.spyOn(roomService, 'update').mockResolvedValue(true);
+
+      // Act
+      await service.update(mockSocket, videoWithSpecialChars);
+
+      // Assert
+      expect(roomService.update).toHaveBeenCalledWith(mockSocket.id, {
+        vidTitle: videoWithSpecialChars.title,
+        vidEpisode: videoWithSpecialChars.episode,
+        vidData: expectedVidData,
+      });
+    });
+
+    it('should handle video with very long title and episode', async () => {
+      // Arrange
+      const hostUser = { ...mockUser, host: { id: 1 } } as any;
+      const longTitle = 'A'.repeat(1000);
+      const longEpisode = 'B'.repeat(500);
+      const videoWithLongValues: Video = {
+        title: longTitle,
+        episode: longEpisode,
+        url: 'https://example.com/video.mp4',
+        speed: 1.0,
+        time: 120,
+        isPaused: false,
+      };
+      const expectedVidData: VidData = {
+        url: 'https://example.com/video.mp4',
+        speed: 1.0,
+        time: 120,
+        isPaused: false,
+      };
+
+      jest.spyOn(userService, 'read').mockResolvedValue(hostUser);
+      jest.spyOn(roomService, 'update').mockResolvedValue(true);
+
+      // Act
+      await service.update(mockSocket, videoWithLongValues);
+
+      // Assert
+      expect(roomService.update).toHaveBeenCalledWith(mockSocket.id, {
+        vidTitle: longTitle,
+        vidEpisode: longEpisode,
+        vidData: expectedVidData,
+      });
+    });
+
+    it('should handle video with extreme numeric values', async () => {
+      // Arrange
+      const hostUser = { ...mockUser, host: { id: 1 } } as any;
+      const videoWithExtremeValues: Video = {
+        title: 'Extreme Values Test',
+        episode: 'Episode 999',
+        url: 'https://example.com/video.mp4',
+        speed: 999.99,
+        time: 999999,
+        isPaused: true,
+      };
+      const expectedVidData: VidData = {
+        url: 'https://example.com/video.mp4',
+        speed: 999.99,
+        time: 999999,
+        isPaused: true,
+      };
+
+      jest.spyOn(userService, 'read').mockResolvedValue(hostUser);
+      jest.spyOn(roomService, 'update').mockResolvedValue(true);
+
+      // Act
+      await service.update(mockSocket, videoWithExtremeValues);
+
+      // Assert
+      expect(roomService.update).toHaveBeenCalledWith(mockSocket.id, {
+        vidTitle: videoWithExtremeValues.title,
+        vidEpisode: videoWithExtremeValues.episode,
+        vidData: expectedVidData,
+      });
+    });
   });
 }); 
