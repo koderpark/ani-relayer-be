@@ -18,27 +18,10 @@ import { ApiBearerAuth } from '@nestjs/swagger';
 export class AppController {
   private logger: Logger = new Logger('appController');
 
-  constructor(
-    private readonly appService: AppService,
-    private readonly userService: UserService,
-  ) {}
+  constructor(private readonly appService: AppService) {}
 
   @Get()
   getHello(): string {
     return this.appService.getHello();
-  }
-
-  @ApiBearerAuth('access-token')
-  @UseGuards(AuthGuard('jwt'))
-  @Get('/user/rawJwt')
-  getPK(@Req() req) {
-    return req.user;
-  }
-
-  @ApiBearerAuth('access-token')
-  @UseGuards(AuthGuard('api'))
-  @Get('/user/read')
-  async validate(@Req() req): Promise<any> {
-    return this.userService.read(req.user.socketId);
   }
 }
