@@ -12,12 +12,6 @@ import { Server, Socket } from 'socket.io';
 import { SocketService } from './socket.service';
 import { Video } from '../room/entities/room.entity';
 
-type Chat = {
-  senderId: string;
-  message: string;
-  createdAt: Date;
-};
-
 @WebSocketGateway(0, { cors: { origin: '*' } })
 export class SocketGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
@@ -52,11 +46,11 @@ export class SocketGateway
 
   @SubscribeMessage('chat')
   async handleChat(
-    @MessageBody() chat: Chat,
+    @MessageBody() text: string,
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
-    this.logger.log(`${client.id} sended ${JSON.stringify(chat)}`);
-    this.socketService.chat(client, chat);
+    this.logger.log(`${client.id} sended ${JSON.stringify(text)}`);
+    this.socketService.chat(client, text);
   }
 
   @SubscribeMessage('room/kick')
