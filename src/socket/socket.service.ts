@@ -6,6 +6,12 @@ import { WebSocketServer } from '@nestjs/websockets';
 import { Video } from '../room/entities/room.entity';
 import { VideoService } from '../video/video.service';
 
+type Chat = {
+  senderId: string;
+  senderName: string;
+  message: string;
+};
+
 @Injectable()
 export class SocketService {
   private logger: Logger = new Logger('SocketService');
@@ -121,5 +127,16 @@ export class SocketService {
 
     await this.videoService.update(client, video);
     await this.msgExcludeMe(client, 'videoChanged', video);
+  }
+
+  async chat(client: Socket, message: string) {
+    const user = await this.userService.read(client.id, ['room', 'host']);
+    const chat = {
+      senderId: client.id,
+      senderName: user.name,
+      message,
+    };
+
+    await this.msgInRoom(user.room.id, 'chat', chat);
   }
 }
