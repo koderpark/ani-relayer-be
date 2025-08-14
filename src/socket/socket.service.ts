@@ -6,17 +6,6 @@ import { WebSocketServer } from '@nestjs/websockets';
 import { Video } from '../room/entities/room.entity';
 import { VideoService } from '../video/video.service';
 
-interface RoomMetadata {
-  id: number;
-  name: string;
-  host: string;
-  user: {
-    id: string;
-    name: string;
-    isHost: boolean;
-  }[];
-}
-
 @Injectable()
 export class SocketService {
   private logger: Logger = new Logger('SocketService');
@@ -29,28 +18,6 @@ export class SocketService {
     private readonly roomService: RoomService,
     private readonly videoService: VideoService,
   ) {}
-
-  async roomMetadata(roomId: number): Promise<RoomMetadata | null> {
-    try {
-      const room = await this.roomService.read(roomId, ['users', 'host']);
-      const userList = room.users
-        .map((user) => ({
-          id: user.id,
-          name: user.name,
-          isHost: user.id === room.host.id,
-        }))
-        .sort((a, b) => a.name.localeCompare(b.name));
-
-      return {
-        id: room.id,
-        name: room.name,
-        host: room.host.id,
-        user: userList,
-      };
-    } catch (error) {
-      return null;
-    }
-  }
 
   async msgInRoom(
     roomId: number,
@@ -71,7 +38,7 @@ export class SocketService {
 
   async roomChanged(roomId: number) {
     this.logger.log(`roomChanged ${roomId}`);
-    const metadata = await this.roomMetadata(roomId);
+    const metadata = await this.roomService.roomMetadata(roomId);
     await this.msgInRoom(roomId, 'roomChanged', metadata);
   }
 
@@ -84,8 +51,6 @@ export class SocketService {
     },
   ) {
     const user = await this.userService.create(client.id, input.username);
-
-    console.log('checkpoint');
 
     const room = await this.roomService.create(
       user.id,

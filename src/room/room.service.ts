@@ -11,6 +11,27 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserService } from '../user/user.service';
 
+export interface RoomMetadata {
+  id: number;
+  name: string;
+  host: string;
+  user: {
+    id: string;
+    name: string;
+    isHost: boolean;
+  }[];
+}
+
+export interface PublicRoom {
+  id: number;
+  name: string;
+  host: string; // username
+  userCount: number; // count
+  vidTitle: string;
+  vidEpisode: string;
+  isLocked: boolean;
+}
+
 @Injectable()
 export class RoomService {
   private logger: Logger = new Logger('RoomService');
@@ -19,7 +40,10 @@ export class RoomService {
     @InjectRepository(Room)
     private roomRepository: Repository<Room>,
     private readonly userService: UserService,
-  ) {}
+  ) {
+    this.logger.log('Remove Leftover Rooms');
+    this.removeAll();
+  }
 
   async chkHost(userId: string): Promise<boolean> {
     const user = await this.userService.read(userId, ['host']);
@@ -102,5 +126,51 @@ export class RoomService {
   async removeAll(): Promise<boolean> {
     const res = await this.roomRepository.delete({});
     return res.affected ? true : false;
+  }
+
+  async roomMetadata(roomId: number): Promise<RoomMetadata | null> {
+    try {
+      const room = await this.read(roomId, ['users', 'host']);
+      const userList = room.users
+        .map((user) => ({
+          id: user.id,
+          name: user.name,
+          isHost: user.id === room.host.id,
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      return {
+        id: room.id,
+        name: room.name,
+        host: room.host.id,
+        user: userList,
+      };
+    } catch (error) {
+      return null;
+    }
+  }
+
+  async publicRoom(room: Room): Promise<PublicRoom> {
+    const password = await this.roomRepository.findOne({
+      where: { id: room.id },
+      select: ['id', 'password'],
+    });
+
+    return {
+      id: room.id,
+      name: room.name,
+      host: room.host.name,
+      userCount: room.users.length,
+      vidTitle: room.vidTitle,
+      vidEpisode: room.vidEpisode,
+      isLocked: password.password !== null,
+    };
+  }
+
+  async readAllPublic(): Promise<PublicRoom[]> {
+    const rooms = await this.roomRepository.find({
+      relations: ['users', 'host'],
+    });
+    return Promise.all(rooms.map((room) => this.publicRoom(room)));
   }
 }

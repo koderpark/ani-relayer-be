@@ -3,41 +3,22 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
-  Req,
+  Query,
   UseGuards,
+  Req,
 } from '@nestjs/common';
-import { RoomService } from './room.service';
-import { AuthGuard } from '@nestjs/passport';
-import { ApiBearerAuth } from '@nestjs/swagger';
+import { PublicRoom, RoomService } from './room.service';
 import { Room } from './entities/room.entity';
+import { Request } from 'express';
 
 @Controller('room')
 export class RoomController {
   constructor(private readonly roomService: RoomService) {}
 
-  @ApiBearerAuth('access-token')
-  @UseGuards(AuthGuard('jwt'))
-  @Get('/my')
-  async myRoom(@Req() req): Promise<Room | 'null'> {
-    const res = await this.roomService.readMine(req.user.socketId);
-    if (!res) return 'null';
-    return res;
-  }
-
-  @Get('removeAll')
-  async removeAll(): Promise<boolean> {
-    const res = await this.roomService.removeAll();
-    if (!res) return false;
-    return true;
-  }
-
-  @Get(':id')
-  async read(@Param('id') id: number): Promise<Room | 'null'> {
-    const res = await this.roomService.read(id);
-    if (!res) return 'null';
-    return res;
+  @Get('public')
+  async findAll(): Promise<PublicRoom[]> {
+    return this.roomService.readAllPublic();
   }
 }

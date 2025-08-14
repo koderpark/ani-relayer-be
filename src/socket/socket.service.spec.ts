@@ -36,6 +36,7 @@ describe('SocketService', () => {
             readMine: jest.fn(),
             remove: jest.fn(),
             leave: jest.fn(),
+            roomMetadata: jest.fn(),
           },
         },
         {
@@ -78,88 +79,6 @@ describe('SocketService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('roomMetadata', () => {
-    it('should return room metadata successfully', async () => {
-      const mockUser = {
-        id: 'socket-123',
-        name: 'koderpark',
-        createdAt: new Date(),
-      } as any;
-      const mockRoom = {
-        id: 1,
-        name: 'Test Room',
-        users: [mockUser],
-        host: mockUser,
-      } as any;
-
-      jest.spyOn(roomService, 'read').mockResolvedValue(mockRoom);
-
-      const result = await service.roomMetadata(1);
-
-      expect(roomService.read).toHaveBeenCalledWith(1, ['users', 'host']);
-      expect(result).toEqual({
-        id: 1,
-        name: 'Test Room',
-        host: 'socket-123',
-        user: [{ id: 'socket-123', name: 'koderpark', isHost: true }],
-      });
-    });
-
-    it('should return null when room not found', async () => {
-      jest
-        .spyOn(roomService, 'read')
-        .mockRejectedValue(new NotFoundException());
-
-      const result = await service.roomMetadata(1);
-
-      expect(roomService.read).toHaveBeenCalledWith(1, ['users', 'host']);
-      expect(result).toBeNull();
-    });
-
-    it('should return null when room read throws any error', async () => {
-      jest
-        .spyOn(roomService, 'read')
-        .mockRejectedValue(new Error('Database error'));
-
-      const result = await service.roomMetadata(1);
-
-      expect(result).toBeNull();
-    });
-
-    it('should handle multiple users in room', async () => {
-      const mockHost = {
-        id: 'host-123',
-        name: 'host',
-        createdAt: new Date(),
-      } as any;
-      const mockPeer = {
-        id: 'peer-456',
-        name: 'peer',
-        createdAt: new Date(),
-      } as any;
-      const mockRoom = {
-        id: 1,
-        name: 'Test Room',
-        users: [mockHost, mockPeer],
-        host: mockHost,
-      } as any;
-
-      jest.spyOn(roomService, 'read').mockResolvedValue(mockRoom);
-
-      const result = await service.roomMetadata(1);
-
-      expect(result).toEqual({
-        id: 1,
-        name: 'Test Room',
-        host: 'host-123',
-        user: [
-          { id: 'host-123', name: 'host', isHost: true },
-          { id: 'peer-456', name: 'peer', isHost: false },
-        ],
-      });
-    });
-  });
-
   describe('msgInRoom', () => {
     it('should emit event to room with body', async () => {
       const roomId = 1;
@@ -198,12 +117,12 @@ describe('SocketService', () => {
         user: [],
       };
 
-      jest.spyOn(service, 'roomMetadata').mockResolvedValue(mockMetadata);
+      jest.spyOn(roomService, 'roomMetadata').mockResolvedValue(mockMetadata);
       jest.spyOn(service, 'msgInRoom').mockResolvedValue(undefined);
 
       await service.roomChanged(1);
 
-      expect(service.roomMetadata).toHaveBeenCalledWith(1);
+      expect(roomService.roomMetadata).toHaveBeenCalledWith(1);
       expect(service.msgInRoom).toHaveBeenCalledWith(
         1,
         'roomChanged',
@@ -212,12 +131,12 @@ describe('SocketService', () => {
     });
 
     it('should handle null metadata gracefully', async () => {
-      jest.spyOn(service, 'roomMetadata').mockResolvedValue(null);
+      jest.spyOn(roomService, 'roomMetadata').mockResolvedValue(null);
       jest.spyOn(service, 'msgInRoom').mockResolvedValue(undefined);
 
       await service.roomChanged(1);
 
-      expect(service.roomMetadata).toHaveBeenCalledWith(1);
+      expect(roomService.roomMetadata).toHaveBeenCalledWith(1);
       expect(service.msgInRoom).toHaveBeenCalledWith(1, 'roomChanged', null);
     });
   });
@@ -539,6 +458,273 @@ describe('SocketService', () => {
         'host',
       ]);
       expect(userService.remove).toHaveBeenCalledWith('socket-123');
+    });
+  });
+
+  describe('msgExcludeMe', () => {
+    let mockClient: Socket;
+
+    beforeEach(() => {
+      mockClient = {
+        id: 'socket-123',
+        broadcast: {
+          to: jest.fn().mockReturnThis(),
+          emit: jest.fn(),
+        },
+      } as any;
+    });
+
+    it('should broadcast event to room excluding sender', async () => {
+      const mockUser = {
+        id: 'socket-123',
+        name: 'koderpark',
+        room: { id: 1 },
+      } as any;
+
+      userService.read.mockResolvedValue(mockUser);
+
+      await service.msgExcludeMe(mockClient, 'testEvent', { message: 'test' });
+
+      expect(userService.read).toHaveBeenCalledWith('socket-123', ['room']);
+      expect(mockClient.broadcast.to).toHaveBeenCalledWith('1');
+      expect(mockClient.broadcast.emit).toHaveBeenCalledWith('testEvent', {
+        message: 'test',
+      });
+    });
+
+    it('should broadcast event without body', async () => {
+      const mockUser = {
+        id: 'socket-123',
+        name: 'koderpark',
+        room: { id: 1 },
+      } as any;
+
+      userService.read.mockResolvedValue(mockUser);
+
+      await service.msgExcludeMe(mockClient, 'testEvent');
+
+      expect(mockClient.broadcast.emit).toHaveBeenCalledWith(
+        'testEvent',
+        undefined,
+      );
+    });
+
+    it('should handle different room IDs', async () => {
+      const mockUser = {
+        id: 'socket-123',
+        name: 'koderpark',
+        room: { id: 999 },
+      } as any;
+
+      userService.read.mockResolvedValue(mockUser);
+
+      await service.msgExcludeMe(mockClient, 'testEvent', { data: 'test' });
+
+      expect(mockClient.broadcast.to).toHaveBeenCalledWith('999');
+    });
+  });
+
+  describe('kick', () => {
+    let mockClient: Socket;
+    let mockTargetSocket: Socket;
+
+    beforeEach(() => {
+      mockClient = {
+        id: 'socket-123',
+      } as any;
+
+      mockTargetSocket = {
+        id: 'target-456',
+        disconnect: jest.fn(),
+      } as any;
+
+      // Setup mock server with target socket
+      mockServer.sockets.sockets.set('target-456', mockTargetSocket);
+    });
+
+    it('should successfully kick user', async () => {
+      await service.kick(mockClient, 'target-456');
+
+      expect(mockTargetSocket.disconnect).toHaveBeenCalledWith(true);
+    });
+
+    it('should throw BadRequestException when user not found', async () => {
+      await expect(
+        service.kick(mockClient, 'nonexistent-user'),
+      ).rejects.toThrow(BadRequestException);
+      expect(mockTargetSocket.disconnect).not.toHaveBeenCalled();
+    });
+
+    it('should handle kick operation with different user IDs', async () => {
+      const anotherTargetSocket = {
+        id: 'another-target',
+        disconnect: jest.fn(),
+      } as any;
+      mockServer.sockets.sockets.set('another-target', anotherTargetSocket);
+
+      await service.kick(mockClient, 'another-target');
+
+      expect(anotherTargetSocket.disconnect).toHaveBeenCalledWith(true);
+    });
+
+    it('should log successful kick operation', async () => {
+      const logSpy = jest.spyOn(service['logger'], 'log');
+
+      await service.kick(mockClient, 'target-456');
+
+      expect(logSpy).toHaveBeenCalledWith('User target-456 has been kicked');
+    });
+
+    it('should handle and log kick operation errors', async () => {
+      const errorSpy = jest.spyOn(service['logger'], 'error');
+      mockTargetSocket.disconnect = jest.fn().mockImplementation(() => {
+        throw new Error('Disconnect failed');
+      });
+
+      await expect(service.kick(mockClient, 'target-456')).rejects.toThrow(
+        'Disconnect failed',
+      );
+      expect(errorSpy).toHaveBeenCalledWith(
+        'Failed to kick user target-456:',
+        'Disconnect failed',
+      );
+    });
+  });
+
+  describe('videoChanged', () => {
+    let mockClient: Socket;
+    let mockVideo: any;
+
+    beforeEach(() => {
+      mockClient = {
+        id: 'socket-123',
+      } as any;
+
+      mockVideo = {
+        title: 'Test Anime',
+        episode: 'Episode 1',
+        url: 'https://example.com/video.mp4',
+        speed: 1.0,
+        time: 120,
+        isPaused: false,
+      };
+    });
+
+    it('should update video when user is host', async () => {
+      const mockUser = {
+        id: 'socket-123',
+        name: 'koderpark',
+        host: { id: 1 },
+      } as any;
+
+      userService.read.mockResolvedValue(mockUser);
+      videoService.update.mockResolvedValue(undefined);
+      jest.spyOn(service, 'msgExcludeMe').mockResolvedValue(undefined);
+
+      await service.videoChanged(mockClient, mockVideo);
+
+      expect(userService.read).toHaveBeenCalledWith('socket-123', [
+        'room',
+        'host',
+      ]);
+      expect(videoService.update).toHaveBeenCalledWith(mockClient, mockVideo);
+      expect(service.msgExcludeMe).toHaveBeenCalledWith(
+        mockClient,
+        'videoChanged',
+        mockVideo,
+      );
+    });
+
+    it('should not update video when user is not host', async () => {
+      const mockUser = {
+        id: 'socket-123',
+        name: 'koderpark',
+        host: null,
+      } as any;
+
+      userService.read.mockResolvedValue(mockUser);
+      const logSpy = jest.spyOn(service['logger'], 'log');
+
+      await service.videoChanged(mockClient, mockVideo);
+
+      expect(userService.read).toHaveBeenCalledWith('socket-123', [
+        'room',
+        'host',
+      ]);
+      expect(videoService.update).not.toHaveBeenCalled();
+      // Note: msgExcludeMe is not called when user is not host
+      expect(logSpy).toHaveBeenCalledWith(
+        `${JSON.stringify(mockUser)} is not host`,
+      );
+    });
+
+    it('should handle video with different properties', async () => {
+      const mockUser = {
+        id: 'socket-123',
+        name: 'koderpark',
+        host: { id: 1 },
+      } as any;
+
+      const customVideo = {
+        title: 'Custom Anime',
+        episode: 'Episode 5',
+        url: 'https://custom.com/video.mp4',
+        speed: 1.5,
+        time: 300,
+        isPaused: true,
+      };
+
+      userService.read.mockResolvedValue(mockUser);
+      videoService.update.mockResolvedValue(undefined);
+      jest.spyOn(service, 'msgExcludeMe').mockResolvedValue(undefined);
+
+      await service.videoChanged(mockClient, customVideo);
+
+      expect(videoService.update).toHaveBeenCalledWith(mockClient, customVideo);
+      expect(service.msgExcludeMe).toHaveBeenCalledWith(
+        mockClient,
+        'videoChanged',
+        customVideo,
+      );
+    });
+
+    it('should handle video service update errors', async () => {
+      const mockUser = {
+        id: 'socket-123',
+        name: 'koderpark',
+        host: { id: 1 },
+      } as any;
+
+      userService.read.mockResolvedValue(mockUser);
+      videoService.update.mockRejectedValue(new Error('Update failed'));
+      jest.spyOn(service, 'msgExcludeMe').mockResolvedValue(undefined);
+
+      await expect(service.videoChanged(mockClient, mockVideo)).rejects.toThrow(
+        'Update failed',
+      );
+
+      expect(videoService.update).toHaveBeenCalledWith(mockClient, mockVideo);
+      // Note: msgExcludeMe is not called when video service update fails
+    });
+
+    it('should handle msgExcludeMe errors gracefully', async () => {
+      const mockUser = {
+        id: 'socket-123',
+        name: 'koderpark',
+        host: { id: 1 },
+      } as any;
+
+      userService.read.mockResolvedValue(mockUser);
+      videoService.update.mockResolvedValue(undefined);
+      jest
+        .spyOn(service, 'msgExcludeMe')
+        .mockRejectedValue(new Error('Broadcast failed'));
+
+      await expect(service.videoChanged(mockClient, mockVideo)).rejects.toThrow(
+        'Broadcast failed',
+      );
+
+      expect(videoService.update).toHaveBeenCalledWith(mockClient, mockVideo);
     });
   });
 }); 
