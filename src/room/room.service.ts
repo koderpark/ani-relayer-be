@@ -20,8 +20,6 @@ export interface RoomMetadata {
     name: string;
     isHost: boolean;
   }[];
-  // vidTitle: string; // todo: video metadata in roommetadata
-  // vidEpisode: string;
 }
 
 export interface PublicRoom {
