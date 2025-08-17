@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Socket, Server } from 'socket.io';
 import { RoomService } from '../room/room.service';
 import { UserService } from '../user/user.service';
@@ -138,5 +143,13 @@ export class SocketService {
     };
 
     await this.msgInRoom(user.room.id, 'chat', chat);
+  }
+
+  async chkHost(client: Socket) {
+    const user = await this.userService.read(client.id, ['host']);
+    if (!user.host) {
+      this.logger.error(`${client.id} is not host`);
+      client.disconnect(true);
+    }
   }
 }

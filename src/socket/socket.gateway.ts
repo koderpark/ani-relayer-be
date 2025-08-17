@@ -25,23 +25,15 @@ export class SocketGateway
     this.socketService.server = server;
   }
 
-  @SubscribeMessage('events')
-  handleEvent(
-    @MessageBody() data: string,
-    @ConnectedSocket() client: Socket,
-  ): void {
-    this.logger.log(`${client.id} sended ${data}`);
-    this.socketService.server.emit('event', data);
-    // return data;
-  }
-
   @SubscribeMessage('video')
   async handleVideo(
     @MessageBody() video: Video,
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
+    await this.socketService.chkHost(client);
+    await this.socketService.videoChanged(client, video);
+
     this.logger.log(`${client.id} sended ${JSON.stringify(video)}`);
-    this.socketService.videoChanged(client, video);
   }
 
   @SubscribeMessage('chat')
@@ -49,8 +41,9 @@ export class SocketGateway
     @MessageBody() text: string,
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
+    await this.socketService.chat(client, text);
+
     this.logger.log(`${client.id} sended ${JSON.stringify(text)}`);
-    this.socketService.chat(client, text);
   }
 
   @SubscribeMessage('room/kick')
@@ -58,18 +51,11 @@ export class SocketGateway
     @MessageBody() data: { userId: string },
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
-    this.logger.log(`${client.id} kicked ${data.userId}`);
+    await this.socketService.chkHost(client);
     await this.socketService.kick(client, data.userId);
-  }
 
-  // @SubscribeMessage('updateVid')
-  // handleUpdateVid(
-  //   @MessageBody() videoParseDto: VideoParseDto,
-  //   @ConnectedSocket() client: Socket,
-  // ): void {
-  //   this.logger.log(`updateVid`);
-  //   this.roomService.updateVideoStatus(client, videoParseDto);
-  // }
+    this.logger.log(`${client.id} kicked ${data.userId}`);
+  }
 
   async handleConnection(client: Socket): Promise<void> {
     const { type } = client.handshake.auth;
