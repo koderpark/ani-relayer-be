@@ -1,10 +1,21 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Socket, Server } from 'socket.io';
 import { RoomService } from '../room/room.service';
 import { UserService } from '../user/user.service';
 import { WebSocketServer } from '@nestjs/websockets';
 import { Video } from '../room/entities/room.entity';
 import { VideoService } from '../video/video.service';
+
+type Chat = {
+  senderId: string;
+  senderName: string;
+  message: string;
+};
 
 @Injectable()
 export class SocketService {
@@ -121,5 +132,24 @@ export class SocketService {
 
     await this.videoService.update(client, video);
     await this.msgExcludeMe(client, 'videoChanged', video);
+  }
+
+  async chat(client: Socket, message: string) {
+    const user = await this.userService.read(client.id, ['room', 'host']);
+    const chat = {
+      senderId: client.id,
+      senderName: user.name,
+      message,
+    };
+
+    await this.msgInRoom(user.room.id, 'chat', chat);
+  }
+
+  async chkHost(client: Socket) {
+    const user = await this.userService.read(client.id, ['host']);
+    if (!user.host) {
+      this.logger.error(`${client.id} is not host`);
+      client.disconnect(true);
+    }
   }
 }
