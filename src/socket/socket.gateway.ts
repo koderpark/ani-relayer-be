@@ -10,7 +10,8 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { SocketService } from './socket.service';
-import { Video } from '../room/entities/room.entity';
+import { Video } from '../interface';
+
 
 @WebSocketGateway(0, { cors: { origin: '*' } })
 export class SocketGateway
@@ -29,77 +30,30 @@ export class SocketGateway
   async handleVideo(
     @MessageBody() video: Video,
     @ConnectedSocket() client: Socket,
-  ): Promise<void> {
+  ) {
     await this.socketService.chkHost(client);
-    await this.socketService.videoChanged(client, video);
-
-    this.logger.log(`${client.id} sended ${JSON.stringify(video)}`);
+    await this.socketService.videoPropagate(client, video);
   }
 
   @SubscribeMessage('chat')
-  async handleChat(
-    @MessageBody() text: string,
-    @ConnectedSocket() client: Socket,
-  ): Promise<void> {
-    await this.socketService.chat(client, text);
-
-    this.logger.log(`${client.id} sended ${JSON.stringify(text)}`);
+  handleChat(@MessageBody() text: string, @ConnectedSocket() client: Socket) {
+    this.socketService.chat(client, text);
   }
 
   @SubscribeMessage('room/kick')
   async handleRoomKick(
     @MessageBody() data: { userId: string },
     @ConnectedSocket() client: Socket,
-  ): Promise<void> {
+  ) {
     await this.socketService.chkHost(client);
     await this.socketService.kick(client, data.userId);
-
-    this.logger.log(`${client.id} kicked ${data.userId}`);
   }
 
-  async handleConnection(client: Socket): Promise<void> {
-    const { type } = client.handshake.auth;
-
-    this.logger.log(`${client.id} connected`);
-
-    try {
-      if (type === 'host') await this.handleHostConnection(client);
-      else if (type === 'peer') await this.handlePeerConnection(client);
-      else throw new BadRequestException('invalid_input_type');
-    } catch (error) {
-      this.logger.error(error);
-      client.disconnect();
-    }
-    return;
+  handleConnection(client: Socket) {
+    this.socketService.handleConnection(client);
   }
 
-  async handleHostConnection(client: Socket): Promise<void> {
-    const { username, name, password } = client.handshake.auth;
-
-    console.log('handleHostConnection', username, name, password);
-
-    await this.socketService.onHostConnection(client, {
-      username: username as string,
-      name: name as string,
-      password: password ? Number(password) : undefined,
-    });
-  }
-
-  async handlePeerConnection(client: Socket): Promise<void> {
-    const { username, roomId, password } = client.handshake.auth;
-
-    console.log('handlePeerConnection', username, roomId, password);
-
-    await this.socketService.onPeerConnection(client, {
-      username: username as string,
-      roomId: Number(roomId),
-      password: password ? Number(password) : undefined,
-    });
-  }
-
-  async handleDisconnect(client: Socket): Promise<void> {
-    this.logger.log(`${client.id} disconnected`);
-    await this.socketService.onDisconnection(client);
-    return;
+  handleDisconnect(client: Socket) {
+    this.socketService.onDisconnection(client);
   }
 }
