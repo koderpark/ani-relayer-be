@@ -42,3 +42,9 @@ export interface PublicRoom {
   vidEpisode: string;
   isLocked: boolean;
 }
+
+export interface Chat {
+  senderId: string;
+  senderName: string;
+  message: string;
+};

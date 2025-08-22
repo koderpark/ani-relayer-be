@@ -8,14 +8,8 @@ import { Socket, Server } from 'socket.io';
 import { RoomService } from '../room/room.service';
 import { UserService } from '../user/user.service';
 import { WebSocketServer } from '@nestjs/websockets';
-import { Video } from '../interface';
+import { Chat, Video } from '../interface';
 import { VideoService } from '../video/video.service';
-
-type Chat = {
-  senderId: string;
-  senderName: string;
-  message: string;
-};
 
 @Injectable()
 export class SocketService {
@@ -140,7 +134,7 @@ export class SocketService {
       senderId: client.id,
       senderName: user.name,
       message,
-    };
+    } satisfies Chat;
 
     await this.msgInRoom(user.room.id, 'chat', chat);
   }
