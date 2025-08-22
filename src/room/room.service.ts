@@ -10,27 +10,7 @@ import { Room } from './entities/room.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserService } from '../user/user.service';
-
-export interface RoomMetadata {
-  id: number;
-  name: string;
-  host: string;
-  user: {
-    id: string;
-    name: string;
-    isHost: boolean;
-  }[];
-}
-
-export interface PublicRoom {
-  id: number;
-  name: string;
-  host: string; // username
-  userCount: number; // count
-  vidTitle: string;
-  vidEpisode: string;
-  isLocked: boolean;
-}
+import { PublicRoom, RoomInfo } from '../interface';
 
 @Injectable()
 export class RoomService {
@@ -128,7 +108,7 @@ export class RoomService {
     return res.affected ? true : false;
   }
 
-  async roomMetadata(roomId: number): Promise<RoomMetadata | null> {
+  async roomInfo(roomId: number): Promise<RoomInfo | null> {
     try {
       const room = await this.read(roomId, ['users', 'host']);
       const userList = room.users

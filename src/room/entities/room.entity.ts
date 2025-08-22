@@ -9,6 +9,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { mockUser, User } from '../../user/entities/user.entity';
+import { VidData } from '../../interface';
 
 @Entity()
 export class Room {
@@ -40,22 +41,6 @@ export class Room {
   @OneToOne(() => User, (user) => user.host, { nullable: true })
   @JoinColumn()
   host: User;
-}
-
-export interface VidData {
-  url: string;
-  speed: number;
-  time: number;
-  isPaused: boolean;
-}
-
-export interface Video {
-  title: string;
-  episode: string;
-  url: string;
-  speed: number;
-  time: number;
-  isPaused: boolean;
 }
 
 export const mockRoom: Room = {
