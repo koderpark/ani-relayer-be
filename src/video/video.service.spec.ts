@@ -4,7 +4,7 @@ import { Socket } from 'socket.io';
 import { VideoService } from './video.service';
 import { RoomService } from '../room/room.service';
 import { UserService } from '../user/user.service';
-import { Video, VidData } from '../room/entities/room.entity';
+import { Video, VidData } from '../interface';
 import { mockUser } from '../user/entities/user.entity';
 
 describe('VideoService', () => {

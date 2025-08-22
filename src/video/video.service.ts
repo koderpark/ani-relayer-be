@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { Socket } from 'socket.io';
-import { VidData, Video } from '../room/entities/room.entity';
+import { VidData, Video } from '../interface';
 import { RoomService } from '../room/room.service';
 import { UserService } from '../user/user.service';
 

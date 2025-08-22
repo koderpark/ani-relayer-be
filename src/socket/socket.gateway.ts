@@ -11,7 +11,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { SocketService } from './socket.service';
 import { UserService } from '../user/user.service';
-import { Video } from '../room/entities/room.entity';
+import { UserInfo, Video } from '../interface';
 
 @WebSocketGateway(0, { cors: { origin: '*' } })
 export class SocketGateway
@@ -78,7 +78,7 @@ export class SocketGateway
         createdAt: me.createdAt,
         roomId: me.room ? me.room.id : null,
         isHost: !!me.host,
-      });
+      } satisfies UserInfo);
     } catch (error) {
       this.logger.error(error);
       client.disconnect();
