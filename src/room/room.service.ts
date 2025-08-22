@@ -63,13 +63,11 @@ export class RoomService {
   }
 
   async create(userId: string, name: string, password?: number): Promise<Room> {
+    this.logger.log(`create Room ${name} by ${userId}`);
+
     const owner = await this.userService.read(userId);
 
-    const room = new Room();
-    room.name = name;
-    room.password = password;
-    room.host = owner;
-
+    const room = this.roomRepository.create({ name, password, host: owner });
     const savedRoom = await this.roomRepository.save(room);
 
     await this.userService.update(userId, {
@@ -77,7 +75,6 @@ export class RoomService {
       room: savedRoom,
     });
 
-    this.logger.log(`create Room ${name} by ${userId}`);
     return savedRoom;
   }
 
