@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, Logger } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { SocketGateway } from './socket.gateway';
 import { SocketService } from './socket.service';
 import { Server, Socket } from 'socket.io';
@@ -19,10 +19,9 @@ describe('SocketGateway', () => {
           provide: SocketService,
           useValue: {
             server: undefined,
-            onHostConnection: jest.fn(),
-            onPeerConnection: jest.fn(),
+            handleConnection: jest.fn(),
             onDisconnection: jest.fn(),
-            videoChanged: jest.fn(),
+            videoPropagate: jest.fn(),
             kick: jest.fn(),
             chat: jest.fn(),
             chkHost: jest.fn(),
@@ -82,7 +81,7 @@ describe('SocketGateway', () => {
   });
 
   describe('handleVideo', () => {
-    it('should log and call socketService.videoChanged', async () => {
+    it('should call socketService.chkHost and videoPropagate', async () => {
       const testVideo: Video = {
         title: 'Test Video',
         episode: '1',
@@ -91,17 +90,13 @@ describe('SocketGateway', () => {
         time: 120,
         isPaused: false,
       };
-      const loggerSpy = jest.spyOn(gateway['logger'], 'log');
 
       await gateway.handleVideo(testVideo, mockSocket);
 
       expect(socketService.chkHost).toHaveBeenCalledWith(mockSocket);
-      expect(socketService.videoChanged).toHaveBeenCalledWith(
+      expect(socketService.videoPropagate).toHaveBeenCalledWith(
         mockSocket,
         testVideo,
-      );
-      expect(loggerSpy).toHaveBeenCalledWith(
-        `${mockSocket.id} sended ${JSON.stringify(testVideo)}`,
       );
     });
 
@@ -114,17 +109,13 @@ describe('SocketGateway', () => {
         time: 0,
         isPaused: true,
       };
-      const loggerSpy = jest.spyOn(gateway['logger'], 'log');
 
       await gateway.handleVideo(testVideo, mockSocket);
 
       expect(socketService.chkHost).toHaveBeenCalledWith(mockSocket);
-      expect(socketService.videoChanged).toHaveBeenCalledWith(
+      expect(socketService.videoPropagate).toHaveBeenCalledWith(
         mockSocket,
         testVideo,
-      );
-      expect(loggerSpy).toHaveBeenCalledWith(
-        `${mockSocket.id} sended ${JSON.stringify(testVideo)}`,
       );
     });
 
@@ -141,7 +132,7 @@ describe('SocketGateway', () => {
       await gateway.handleVideo(testVideo, mockSocket);
 
       expect(socketService.chkHost).toHaveBeenCalledWith(mockSocket);
-      expect(socketService.videoChanged).toHaveBeenCalledWith(
+      expect(socketService.videoPropagate).toHaveBeenCalledWith(
         mockSocket,
         testVideo,
       );
@@ -149,47 +140,34 @@ describe('SocketGateway', () => {
   });
 
   describe('handleChat', () => {
-    it('should log and call socketService.chat', async () => {
+    it('should call socketService.chat', () => {
       const testMessage = 'Hello, world!';
-      const loggerSpy = jest.spyOn(gateway['logger'], 'log');
 
-      await gateway.handleChat(testMessage, mockSocket);
+      gateway.handleChat(testMessage, mockSocket);
 
       expect(socketService.chat).toHaveBeenCalledWith(mockSocket, testMessage);
-      expect(loggerSpy).toHaveBeenCalledWith(
-        `${mockSocket.id} sended ${JSON.stringify(testMessage)}`,
-      );
     });
 
-    it('should handle empty string message', async () => {
+    it('should handle empty string message', () => {
       const testMessage = '';
-      const loggerSpy = jest.spyOn(gateway['logger'], 'log');
 
-      await gateway.handleChat(testMessage, mockSocket);
+      gateway.handleChat(testMessage, mockSocket);
 
       expect(socketService.chat).toHaveBeenCalledWith(mockSocket, testMessage);
-      expect(loggerSpy).toHaveBeenCalledWith(
-        `${mockSocket.id} sended ${JSON.stringify(testMessage)}`,
-      );
     });
 
-    it('should handle special characters in message', async () => {
+    it('should handle special characters in message', () => {
       const testMessage = '{"message": "테스트", "emoji": "🎉"}';
-      const loggerSpy = jest.spyOn(gateway['logger'], 'log');
 
-      await gateway.handleChat(testMessage, mockSocket);
+      gateway.handleChat(testMessage, mockSocket);
 
       expect(socketService.chat).toHaveBeenCalledWith(mockSocket, testMessage);
-      expect(loggerSpy).toHaveBeenCalledWith(
-        `${mockSocket.id} sended ${JSON.stringify(testMessage)}`,
-      );
     });
   });
 
   describe('handleRoomKick', () => {
-    it('should log and call socketService.kick', async () => {
+    it('should call socketService.chkHost and kick', async () => {
       const testData = { userId: 'user-456' };
-      const loggerSpy = jest.spyOn(gateway['logger'], 'log');
 
       await gateway.handleRoomKick(testData, mockSocket);
 
@@ -197,15 +175,11 @@ describe('SocketGateway', () => {
       expect(socketService.kick).toHaveBeenCalledWith(
         mockSocket,
         testData.userId,
-      );
-      expect(loggerSpy).toHaveBeenCalledWith(
-        `${mockSocket.id} kicked ${testData.userId}`,
       );
     });
 
     it('should handle different user IDs', async () => {
       const testData = { userId: 'another-user-789' };
-      const loggerSpy = jest.spyOn(gateway['logger'], 'log');
 
       await gateway.handleRoomKick(testData, mockSocket);
 
@@ -214,346 +188,60 @@ describe('SocketGateway', () => {
         mockSocket,
         testData.userId,
       );
-      expect(loggerSpy).toHaveBeenCalledWith(
-        `${mockSocket.id} kicked ${testData.userId}`,
-      );
     });
 
     it('should handle empty userId', async () => {
       const testData = { userId: '' };
-      const loggerSpy = jest.spyOn(gateway['logger'], 'log');
 
       await gateway.handleRoomKick(testData, mockSocket);
 
       expect(socketService.chkHost).toHaveBeenCalledWith(mockSocket);
-      expect(loggerSpy).toHaveBeenCalledWith(`${mockSocket.id} kicked `);
       expect(socketService.kick).toHaveBeenCalledWith(mockSocket, '');
     });
   });
 
   describe('handleConnection', () => {
-    beforeEach(() => {
-      jest.spyOn(gateway, 'handleHostConnection').mockResolvedValue(undefined);
-      jest.spyOn(gateway, 'handlePeerConnection').mockResolvedValue(undefined);
+    it('should delegate to socketService.handleConnection', () => {
+      gateway.handleConnection(mockSocket);
+
+      expect(socketService.handleConnection).toHaveBeenCalledWith(mockSocket);
     });
 
-    it('should handle host connection type', async () => {
-      mockSocket.handshake.auth = { type: 'host' };
-      const loggerSpy = jest.spyOn(gateway['logger'], 'log');
+    it('should handle connection with different socket IDs', () => {
+      const anotherSocket = {
+        id: 'another-socket-456',
+        handshake: {
+          auth: {},
+        },
+        disconnect: jest.fn(),
+        join: jest.fn(),
+        emit: jest.fn(),
+        broadcast: {
+          to: jest.fn().mockReturnThis(),
+          emit: jest.fn(),
+        },
+      } as any;
 
-      await gateway.handleConnection(mockSocket);
+      gateway.handleConnection(anotherSocket);
 
-      expect(loggerSpy).toHaveBeenCalledWith(`${mockSocket.id} connected`);
-      expect(gateway.handleHostConnection).toHaveBeenCalledWith(mockSocket);
-      expect(gateway.handlePeerConnection).not.toHaveBeenCalled();
-      expect(mockSocket.disconnect).not.toHaveBeenCalled();
-    });
-
-    it('should handle peer connection type', async () => {
-      mockSocket.handshake.auth = { type: 'peer' };
-      const loggerSpy = jest.spyOn(gateway['logger'], 'log');
-
-      await gateway.handleConnection(mockSocket);
-
-      expect(loggerSpy).toHaveBeenCalledWith(`${mockSocket.id} connected`);
-      expect(gateway.handlePeerConnection).toHaveBeenCalledWith(mockSocket);
-      expect(gateway.handleHostConnection).not.toHaveBeenCalled();
-      expect(mockSocket.disconnect).not.toHaveBeenCalled();
-    });
-
-    it('should handle invalid connection type', async () => {
-      mockSocket.handshake.auth = { type: 'invalid' };
-      const loggerSpy = jest.spyOn(gateway['logger'], 'log');
-      const errorSpy = jest.spyOn(gateway['logger'], 'error');
-
-      await gateway.handleConnection(mockSocket);
-
-      expect(loggerSpy).toHaveBeenCalledWith(`${mockSocket.id} connected`);
-      expect(errorSpy).toHaveBeenCalledWith(expect.any(BadRequestException));
-      expect(mockSocket.disconnect).toHaveBeenCalled();
-    });
-
-    it('should handle missing connection type', async () => {
-      mockSocket.handshake.auth = {};
-      const loggerSpy = jest.spyOn(gateway['logger'], 'log');
-      const errorSpy = jest.spyOn(gateway['logger'], 'error');
-
-      await gateway.handleConnection(mockSocket);
-
-      expect(loggerSpy).toHaveBeenCalledWith(`${mockSocket.id} connected`);
-      expect(errorSpy).toHaveBeenCalledWith(expect.any(BadRequestException));
-      expect(mockSocket.disconnect).toHaveBeenCalled();
-    });
-
-    it('should handle connection error from host handler', async () => {
-      mockSocket.handshake.auth = { type: 'host' };
-      const testError = new Error('Host connection failed');
-      jest.spyOn(gateway, 'handleHostConnection').mockRejectedValue(testError);
-      const errorSpy = jest.spyOn(gateway['logger'], 'error');
-
-      await gateway.handleConnection(mockSocket);
-
-      expect(errorSpy).toHaveBeenCalledWith(testError);
-      expect(mockSocket.disconnect).toHaveBeenCalled();
-    });
-
-    it('should handle connection error from peer handler', async () => {
-      mockSocket.handshake.auth = { type: 'peer' };
-      const testError = new Error('Peer connection failed');
-      jest.spyOn(gateway, 'handlePeerConnection').mockRejectedValue(testError);
-      const errorSpy = jest.spyOn(gateway['logger'], 'error');
-
-      await gateway.handleConnection(mockSocket);
-
-      expect(errorSpy).toHaveBeenCalledWith(testError);
-      expect(mockSocket.disconnect).toHaveBeenCalled();
-    });
-  });
-
-  describe('handleHostConnection', () => {
-    it('should handle host connection with password', async () => {
-      mockSocket.handshake.auth = {
-        username: 'testhost',
-        name: 'Test Room',
-        password: '1234',
-      };
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-
-      await gateway.handleHostConnection(mockSocket);
-
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'handleHostConnection',
-        'testhost',
-        'Test Room',
-        '1234',
+      expect(socketService.handleConnection).toHaveBeenCalledWith(
+        anotherSocket,
       );
-      expect(socketService.onHostConnection).toHaveBeenCalledWith(mockSocket, {
-        username: 'testhost',
-        name: 'Test Room',
-        password: 1234,
-      });
-
-      consoleSpy.mockRestore();
-    });
-
-    it('should handle host connection without password', async () => {
-      mockSocket.handshake.auth = {
-        username: 'testhost',
-        name: 'Test Room',
-      };
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-
-      await gateway.handleHostConnection(mockSocket);
-
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'handleHostConnection',
-        'testhost',
-        'Test Room',
-        undefined,
-      );
-      expect(socketService.onHostConnection).toHaveBeenCalledWith(mockSocket, {
-        username: 'testhost',
-        name: 'Test Room',
-        password: undefined,
-      });
-
-      consoleSpy.mockRestore();
-    });
-
-    it('should handle host connection with empty password', async () => {
-      mockSocket.handshake.auth = {
-        username: 'testhost',
-        name: 'Test Room',
-        password: '',
-      };
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-
-      await gateway.handleHostConnection(mockSocket);
-
-      expect(socketService.onHostConnection).toHaveBeenCalledWith(mockSocket, {
-        username: 'testhost',
-        name: 'Test Room',
-        password: undefined,
-      });
-
-      consoleSpy.mockRestore();
-    });
-
-    it('should handle host connection with numeric password as string', async () => {
-      mockSocket.handshake.auth = {
-        username: 'testhost',
-        name: 'Test Room',
-        password: '5678',
-      };
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-
-      await gateway.handleHostConnection(mockSocket);
-
-      expect(socketService.onHostConnection).toHaveBeenCalledWith(mockSocket, {
-        username: 'testhost',
-        name: 'Test Room',
-        password: 5678,
-      });
-
-      consoleSpy.mockRestore();
-    });
-
-    it('should handle host connection with special characters in username and room name', async () => {
-      mockSocket.handshake.auth = {
-        username: '한글사용자',
-        name: '테스트 룸 🎮',
-        password: '9999',
-      };
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-
-      await gateway.handleHostConnection(mockSocket);
-
-      expect(socketService.onHostConnection).toHaveBeenCalledWith(mockSocket, {
-        username: '한글사용자',
-        name: '테스트 룸 🎮',
-        password: 9999,
-      });
-
-      consoleSpy.mockRestore();
-    });
-  });
-
-  describe('handlePeerConnection', () => {
-    it('should handle peer connection with password', async () => {
-      mockSocket.handshake.auth = {
-        username: 'testpeer',
-        roomId: '123',
-        password: '1234',
-      };
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-
-      await gateway.handlePeerConnection(mockSocket);
-
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'handlePeerConnection',
-        'testpeer',
-        '123',
-        '1234',
-      );
-      expect(socketService.onPeerConnection).toHaveBeenCalledWith(mockSocket, {
-        username: 'testpeer',
-        roomId: 123,
-        password: 1234,
-      });
-
-      consoleSpy.mockRestore();
-    });
-
-    it('should handle peer connection without password', async () => {
-      mockSocket.handshake.auth = {
-        username: 'testpeer',
-        roomId: '123',
-      };
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-
-      await gateway.handlePeerConnection(mockSocket);
-
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'handlePeerConnection',
-        'testpeer',
-        '123',
-        undefined,
-      );
-      expect(socketService.onPeerConnection).toHaveBeenCalledWith(mockSocket, {
-        username: 'testpeer',
-        roomId: 123,
-        password: undefined,
-      });
-
-      consoleSpy.mockRestore();
-    });
-
-    it('should handle peer connection with empty password', async () => {
-      mockSocket.handshake.auth = {
-        username: 'testpeer',
-        roomId: '123',
-        password: '',
-      };
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-
-      await gateway.handlePeerConnection(mockSocket);
-
-      expect(socketService.onPeerConnection).toHaveBeenCalledWith(mockSocket, {
-        username: 'testpeer',
-        roomId: 123,
-        password: undefined,
-      });
-
-      consoleSpy.mockRestore();
-    });
-
-    it('should convert roomId string to number', async () => {
-      mockSocket.handshake.auth = {
-        username: 'testpeer',
-        roomId: '456',
-        password: '7890',
-      };
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-
-      await gateway.handlePeerConnection(mockSocket);
-
-      expect(socketService.onPeerConnection).toHaveBeenCalledWith(mockSocket, {
-        username: 'testpeer',
-        roomId: 456,
-        password: 7890,
-      });
-
-      consoleSpy.mockRestore();
-    });
-
-    it('should handle peer connection with special characters in username', async () => {
-      mockSocket.handshake.auth = {
-        username: '한글피어',
-        roomId: '789',
-        password: '1111',
-      };
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-
-      await gateway.handlePeerConnection(mockSocket);
-
-      expect(socketService.onPeerConnection).toHaveBeenCalledWith(mockSocket, {
-        username: '한글피어',
-        roomId: 789,
-        password: 1111,
-      });
-
-      consoleSpy.mockRestore();
     });
   });
 
   describe('handleDisconnect', () => {
-    it('should log disconnection and call socketService.onDisconnection', async () => {
-      const loggerSpy = jest.spyOn(gateway['logger'], 'log');
+    it('should call socketService.onDisconnection', () => {
+      gateway.handleDisconnect(mockSocket);
 
-      await gateway.handleDisconnect(mockSocket);
-
-      expect(loggerSpy).toHaveBeenCalledWith(`${mockSocket.id} disconnected`);
       expect(socketService.onDisconnection).toHaveBeenCalledWith(mockSocket);
     });
 
-    it('should handle multiple disconnections', async () => {
-      const loggerSpy = jest.spyOn(gateway['logger'], 'log');
+    it('should handle multiple disconnections', () => {
+      gateway.handleDisconnect(mockSocket);
+      gateway.handleDisconnect(mockSocket);
 
-      await gateway.handleDisconnect(mockSocket);
-      await gateway.handleDisconnect(mockSocket);
-
-      expect(loggerSpy).toHaveBeenCalledTimes(2);
       expect(socketService.onDisconnection).toHaveBeenCalledTimes(2);
-    });
-
-    it('should handle disconnection error gracefully', async () => {
-      const testError = new Error('Disconnection failed');
-      socketService.onDisconnection.mockRejectedValue(testError);
-
-      await expect(gateway.handleDisconnect(mockSocket)).rejects.toThrow(
-        'Disconnection failed',
-      );
-      expect(socketService.onDisconnection).toHaveBeenCalledWith(mockSocket);
     });
   });
 
@@ -586,7 +274,7 @@ describe('SocketGateway', () => {
 
       await gateway.handleVideo(testVideo, mockSocket);
       expect(socketService.chkHost).toHaveBeenCalledWith(mockSocket);
-      expect(socketService.videoChanged).toHaveBeenCalledWith(
+      expect(socketService.videoPropagate).toHaveBeenCalledWith(
         mockSocket,
         testVideo,
       );
@@ -601,7 +289,7 @@ describe('SocketGateway', () => {
       );
 
       // Test disconnection handling
-      await gateway.handleDisconnect(mockSocket);
+      gateway.handleDisconnect(mockSocket);
       expect(socketService.onDisconnection).toHaveBeenCalledWith(mockSocket);
     });
   });
@@ -619,13 +307,13 @@ describe('SocketGateway', () => {
       };
       await gateway.handleVideo(video, mockSocket);
       expect(socketService.chkHost).toHaveBeenCalledWith(mockSocket);
-      expect(socketService.videoChanged).toHaveBeenCalledWith(
+      expect(socketService.videoPropagate).toHaveBeenCalledWith(
         mockSocket,
         video,
       );
 
       // Test chat message
-      await gateway.handleChat('test message', mockSocket);
+      gateway.handleChat('test message', mockSocket);
       expect(socketService.chat).toHaveBeenCalledWith(
         mockSocket,
         'test message',
@@ -637,13 +325,36 @@ describe('SocketGateway', () => {
       expect(socketService.kick).toHaveBeenCalledWith(mockSocket, 'test');
     });
 
-    it('should handle connection and disconnection lifecycle', async () => {
-      const loggerSpy = jest.spyOn(gateway['logger'], 'log');
+    it('should handle connection and disconnection lifecycle', () => {
+      // Test connection
+      gateway.handleConnection(mockSocket);
+      expect(socketService.handleConnection).toHaveBeenCalledWith(mockSocket);
 
       // Test disconnection
-      await gateway.handleDisconnect(mockSocket);
-      expect(loggerSpy).toHaveBeenCalledWith(`${mockSocket.id} disconnected`);
+      gateway.handleDisconnect(mockSocket);
       expect(socketService.onDisconnection).toHaveBeenCalledWith(mockSocket);
+    });
+  });
+
+  describe('Error handling', () => {
+    it('should handle socketService errors gracefully', async () => {
+      const testError = new Error('Service error');
+      socketService.chkHost.mockRejectedValue(testError);
+
+      await expect(
+        gateway.handleVideo({} as Video, mockSocket),
+      ).rejects.toThrow('Service error');
+    });
+
+    it('should handle disconnection errors gracefully', () => {
+      const testError = new Error('Disconnection failed');
+      socketService.onDisconnection.mockImplementation(() => {
+        throw testError;
+      });
+
+      expect(() => gateway.handleDisconnect(mockSocket)).toThrow(
+        'Disconnection failed',
+      );
     });
   });
 });
