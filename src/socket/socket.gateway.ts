@@ -30,35 +30,21 @@ export class SocketGateway
   }
 
   @SubscribeMessage('video')
-  async handleVideo(
-    @MessageBody() video: Video,
-    @ConnectedSocket() client: Socket,
-  ): Promise<void> {
-    await this.socketService.chkHost(client);
-    await this.socketService.videoChanged(client, video);
-
-    this.logger.log(`${client.id} sended ${JSON.stringify(video)}`);
+  handleVideo(@MessageBody() video: Video, @ConnectedSocket() client: Socket) {
+    this.socketService.handleVideo(client, video);
   }
 
   @SubscribeMessage('chat')
-  async handleChat(
-    @MessageBody() text: string,
-    @ConnectedSocket() client: Socket,
-  ): Promise<void> {
-    await this.socketService.chat(client, text);
-
-    this.logger.log(`${client.id} sended ${JSON.stringify(text)}`);
+  handleChat(@MessageBody() text: string, @ConnectedSocket() client: Socket) {
+    this.socketService.chat(client, text);
   }
 
   @SubscribeMessage('room/kick')
-  async handleRoomKick(
+  handleRoomKick(
     @MessageBody() data: { userId: string },
     @ConnectedSocket() client: Socket,
-  ): Promise<void> {
-    await this.socketService.chkHost(client);
-    await this.socketService.kick(client, data.userId);
-
-    this.logger.log(`${client.id} kicked ${data.userId}`);
+  ) {
+    this.socketService.handleRoomKick(client, data.userId);
   }
 
   async handleConnection(client: Socket): Promise<void> {
@@ -111,9 +97,7 @@ export class SocketGateway
     });
   }
 
-  async handleDisconnect(client: Socket): Promise<void> {
-    this.logger.log(`${client.id} disconnected`);
-    await this.socketService.onDisconnection(client);
-    return;
+  handleDisconnect(client: Socket) {
+    this.socketService.onDisconnection(client);
   }
 }

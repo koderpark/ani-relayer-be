@@ -96,6 +96,8 @@ export class SocketService {
     await this.userService.remove(client.id);
 
     if (user.room) await this.roomChanged(user.room.id);
+
+    this.logger.log(`${client.id} disconnected`);
   }
 
   async kick(client: Socket, userId: string) {
@@ -128,15 +130,17 @@ export class SocketService {
     await this.msgExcludeMe(client, 'videoChanged', video);
   }
 
-  async chat(client: Socket, message: string) {
+  async chat(client: Socket, text: string) {
     const user = await this.userService.read(client.id, ['room', 'host']);
     const chat = {
       senderId: client.id,
       senderName: user.name,
-      message,
+      message: text,
     } satisfies Chat;
 
     await this.msgInRoom(user.room.id, 'chat', chat);
+
+    this.logger.log(`${client.id} sended ${JSON.stringify(text)}`);
   }
 
   async chkHost(client: Socket) {
@@ -145,5 +149,19 @@ export class SocketService {
       this.logger.error(`${client.id} is not host`);
       client.disconnect(true);
     }
+  }
+
+  async handleVideo(client: Socket, video: Video) {
+    await this.chkHost(client);
+    await this.videoChanged(client, video);
+
+    this.logger.log(`${client.id} sended ${JSON.stringify(video)}`);
+  }
+
+  async handleRoomKick(client: Socket, userId: string) {
+    await this.chkHost(client);
+    await this.kick(client, userId);
+
+    this.logger.log(`${client.id} kicked ${userId}`);
   }
 }
