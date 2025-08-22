@@ -10,17 +10,13 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { SocketService } from './socket.service';
-import { UserService } from '../user/user.service';
-import { UserInfo, Video } from '../interface';
+import { Video } from '../room/entities/room.entity';
 
 @WebSocketGateway(0, { cors: { origin: '*' } })
 export class SocketGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
-  constructor(
-    private readonly socketService: SocketService,
-    private readonly userService: UserService,
-  ) {}
+  constructor(private readonly socketService: SocketService) {}
 
   private logger: Logger = new Logger('websocket');
 
@@ -70,20 +66,10 @@ export class SocketGateway
       if (type === 'host') await this.handleHostConnection(client);
       else if (type === 'peer') await this.handlePeerConnection(client);
       else throw new BadRequestException('invalid_input_type');
-
-      const me = await this.userService.read(client.id, ['room', 'host']);
-      client.emit('user', {
-        id: me.id,
-        name: me.name,
-        createdAt: me.createdAt,
-        roomId: me.room ? me.room.id : null,
-        isHost: !!me.host,
-      } satisfies UserInfo);
     } catch (error) {
       this.logger.error(error);
       client.disconnect();
     }
-
     return;
   }
 
