@@ -8,8 +8,9 @@ import { Socket, Server } from 'socket.io';
 import { RoomService } from '../room/room.service';
 import { UserService } from '../user/user.service';
 import { WebSocketServer } from '@nestjs/websockets';
-import { Chat, Video } from '../interface';
+import { Chat, Video, UserInfo } from '../interface';
 import { VideoService } from '../video/video.service';
+import { Room } from 'src/room/entities/room.entity';
 
 @Injectable()
 export class SocketService {
@@ -45,47 +46,6 @@ export class SocketService {
     this.logger.log(`roomChanged ${roomId}`);
     const info = await this.roomService.roomInfo(roomId);
     await this.msgInRoom(roomId, 'roomChanged', info);
-  }
-
-  async onHostConnection(
-    client: Socket,
-    input: {
-      username: string;
-      name: string;
-      password: number;
-    },
-  ) {
-    const user = await this.userService.create(client.id, input.username);
-
-    const room = await this.roomService.create(
-      user.id,
-      input.name,
-      input.password,
-    );
-
-    await client.join(room.id.toString());
-    await this.roomChanged(room.id);
-    return room;
-  }
-
-  async onPeerConnection(
-    client: Socket,
-    input: {
-      username: string;
-      roomId: number;
-      password?: number;
-    },
-  ) {
-    const user = await this.userService.create(client.id, input.username);
-    const room = await this.roomService.join(
-      user.id,
-      input.roomId,
-      input.password,
-    );
-
-    await client.join(room.id.toString());
-    await this.roomChanged(room.id);
-    return room;
   }
 
   async onDisconnection(client: Socket): Promise<void> {
@@ -163,5 +123,43 @@ export class SocketService {
     await this.kick(client, userId);
 
     this.logger.log(`${client.id} kicked ${userId}`);
+  }
+
+  async handleConnection(client: Socket) {
+    const { type, username } = client.handshake.auth;
+
+    if (!['host', 'peer'].includes(type)) throw new Error('invalid_input_type');
+
+    const user = await this.userService.create(client.id, username);
+    const room = await this.roomCreate(client);
+    if (!room) throw new Error('room_failed');
+
+    await client.join(room.id.toString());
+    await this.roomChanged(room.id);
+
+    client.emit('user', {
+      id: user.id,
+      name: user.name,
+      createdAt: user.createdAt,
+      roomId: room.id,
+      isHost: type === 'host',
+    } satisfies UserInfo);
+
+    this.logger.log(`${client.id} connected`);
+  }
+
+  async roomCreate(client: Socket): Promise<Room | null> {
+    const { type } = client.handshake.auth;
+    if (type === 'host') {
+      const { name } = client.handshake.auth;
+      const password = Number(client.handshake.auth.password);
+      return await this.roomService.create(client.id, name, password);
+    }
+    if (type === 'peer') {
+      const roomId = Number(client.handshake.auth.roomId);
+      const password = Number(client.handshake.auth.password);
+      return await this.roomService.join(client.id, roomId, password);
+    }
+    return null;
   }
 }

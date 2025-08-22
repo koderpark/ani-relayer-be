@@ -17,10 +17,7 @@ import { UserInfo, Video } from '../interface';
 export class SocketGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
-  constructor(
-    private readonly socketService: SocketService,
-    private readonly userService: UserService,
-  ) {}
+  constructor(private readonly socketService: SocketService) {}
 
   private logger: Logger = new Logger('websocket');
 
@@ -40,61 +37,16 @@ export class SocketGateway
   }
 
   @SubscribeMessage('room/kick')
-  handleRoomKick(
+  async handleRoomKick(
     @MessageBody() data: { userId: string },
     @ConnectedSocket() client: Socket,
   ) {
+    await this.socketService.chkHost(client);
     this.socketService.handleRoomKick(client, data.userId);
   }
 
-  async handleConnection(client: Socket): Promise<void> {
-    const { type } = client.handshake.auth;
-
-    this.logger.log(`${client.id} connected`);
-
-    try {
-      if (type === 'host') await this.handleHostConnection(client);
-      else if (type === 'peer') await this.handlePeerConnection(client);
-      else throw new BadRequestException('invalid_input_type');
-
-      const me = await this.userService.read(client.id, ['room', 'host']);
-      client.emit('user', {
-        id: me.id,
-        name: me.name,
-        createdAt: me.createdAt,
-        roomId: me.room ? me.room.id : null,
-        isHost: !!me.host,
-      } satisfies UserInfo);
-    } catch (error) {
-      this.logger.error(error);
-      client.disconnect();
-    }
-
-    return;
-  }
-
-  async handleHostConnection(client: Socket): Promise<void> {
-    const { username, name, password } = client.handshake.auth;
-
-    console.log('handleHostConnection', username, name, password);
-
-    await this.socketService.onHostConnection(client, {
-      username: username as string,
-      name: name as string,
-      password: password ? Number(password) : undefined,
-    });
-  }
-
-  async handlePeerConnection(client: Socket): Promise<void> {
-    const { username, roomId, password } = client.handshake.auth;
-
-    console.log('handlePeerConnection', username, roomId, password);
-
-    await this.socketService.onPeerConnection(client, {
-      username: username as string,
-      roomId: Number(roomId),
-      password: password ? Number(password) : undefined,
-    });
+  async handleConnection(client: Socket) {
+    this.socketService.handleConnection(client);
   }
 
   handleDisconnect(client: Socket) {
