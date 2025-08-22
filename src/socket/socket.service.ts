@@ -48,50 +48,29 @@ export class SocketService {
     await this.msgInRoom(roomId, 'roomChanged', info);
   }
 
-  async onDisconnection(client: Socket): Promise<void> {
-    const user = await this.userService.read(client.id, ['room', 'host']);
-
-    if (user.host) await this.roomService.remove(client.id);
-
-    await this.userService.remove(client.id);
-
-    if (user.room) await this.roomChanged(user.room.id);
-
-    this.logger.log(`${client.id} disconnected`);
-  }
-
   async kick(client: Socket, userId: string) {
     try {
       const targetSocket = this.server.sockets.sockets.get(userId);
-
-      if (!targetSocket) {
-        throw new BadRequestException('User not found');
-      }
+      if (!targetSocket) throw new BadRequestException('User not found');
 
       targetSocket.disconnect(true);
-
-      this.logger.log(`User ${userId} has been kicked`);
     } catch (error) {
       this.logger.error(`Failed to kick user ${userId}:`, error.message);
       throw error;
     }
+
+    this.logger.log(`${client.id} kicked ${userId}`);
   }
 
-  async videoChanged(client: Socket, video: Video) {
-    this.logger.log(`videoChanged service`);
-
-    const user = await this.userService.read(client.id, ['room', 'host']);
-    if (!user.host) {
-      this.logger.log(`${JSON.stringify(user)} is not host`);
-      return;
-    }
-
+  async videoPropagate(client: Socket, video: Video) {
     await this.videoService.update(client, video);
     await this.msgExcludeMe(client, 'videoChanged', video);
+
+    this.logger.log(`${client.id} sended ${JSON.stringify(video)}`);
   }
 
   async chat(client: Socket, text: string) {
-    const user = await this.userService.read(client.id, ['room', 'host']);
+    const user = await this.userService.read(client.id, ['room']);
     const chat = {
       senderId: client.id,
       senderName: user.name,
@@ -99,7 +78,6 @@ export class SocketService {
     } satisfies Chat;
 
     await this.msgInRoom(user.room.id, 'chat', chat);
-
     this.logger.log(`${client.id} sended ${JSON.stringify(text)}`);
   }
 
@@ -109,20 +87,6 @@ export class SocketService {
       this.logger.error(`${client.id} is not host`);
       client.disconnect(true);
     }
-  }
-
-  async handleVideo(client: Socket, video: Video) {
-    await this.chkHost(client);
-    await this.videoChanged(client, video);
-
-    this.logger.log(`${client.id} sended ${JSON.stringify(video)}`);
-  }
-
-  async handleRoomKick(client: Socket, userId: string) {
-    await this.chkHost(client);
-    await this.kick(client, userId);
-
-    this.logger.log(`${client.id} kicked ${userId}`);
   }
 
   async handleConnection(client: Socket) {
@@ -146,6 +110,16 @@ export class SocketService {
     } satisfies UserInfo);
 
     this.logger.log(`${client.id} connected`);
+  }
+
+  async onDisconnection(client: Socket): Promise<void> {
+    const user = await this.userService.read(client.id, ['room', 'host']);
+    if (user.host) await this.roomService.remove(client.id);
+
+    await this.userService.remove(client.id);
+    await this.roomChanged(user.room.id);
+
+    this.logger.log(`${client.id} disconnected`);
   }
 
   async roomCreate(client: Socket): Promise<Room | null> {

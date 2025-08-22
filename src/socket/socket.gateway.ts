@@ -10,8 +10,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { SocketService } from './socket.service';
-import { UserService } from '../user/user.service';
-import { UserInfo, Video } from '../interface';
+import { Video } from '../interface';
 
 @WebSocketGateway(0, { cors: { origin: '*' } })
 export class SocketGateway
@@ -27,8 +26,12 @@ export class SocketGateway
   }
 
   @SubscribeMessage('video')
-  handleVideo(@MessageBody() video: Video, @ConnectedSocket() client: Socket) {
-    this.socketService.handleVideo(client, video);
+  async handleVideo(
+    @MessageBody() video: Video,
+    @ConnectedSocket() client: Socket,
+  ) {
+    await this.socketService.chkHost(client);
+    await this.socketService.videoPropagate(client, video);
   }
 
   @SubscribeMessage('chat')
@@ -42,10 +45,10 @@ export class SocketGateway
     @ConnectedSocket() client: Socket,
   ) {
     await this.socketService.chkHost(client);
-    this.socketService.handleRoomKick(client, data.userId);
+    await this.socketService.kick(client, data.userId);
   }
 
-  async handleConnection(client: Socket) {
+  handleConnection(client: Socket) {
     this.socketService.handleConnection(client);
   }
 
