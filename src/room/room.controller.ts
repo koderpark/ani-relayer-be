@@ -9,8 +9,8 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
-import { PublicRoom, RoomService } from './room.service';
-import { Room } from './entities/room.entity';
+import { RoomService } from './room.service';
+import { PublicRoom } from '../interface';
 import { Request } from 'express';
 
 @Controller('room')

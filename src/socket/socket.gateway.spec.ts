@@ -3,7 +3,7 @@ import { BadRequestException, Logger } from '@nestjs/common';
 import { SocketGateway } from './socket.gateway';
 import { SocketService } from './socket.service';
 import { Server, Socket } from 'socket.io';
-import { Video } from '../room/entities/room.entity';
+import { Video } from '../interface';
 
 describe('SocketGateway', () => {
   let gateway: SocketGateway;
