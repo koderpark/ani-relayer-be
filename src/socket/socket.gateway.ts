@@ -12,6 +12,7 @@ import { Server, Socket } from 'socket.io';
 import { SocketService } from './socket.service';
 import { Video } from '../interface';
 
+
 @WebSocketGateway(0, { cors: { origin: '*' } })
 export class SocketGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect

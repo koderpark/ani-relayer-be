@@ -12,6 +12,12 @@ import { Chat, Video, UserInfo } from '../interface';
 import { VideoService } from '../video/video.service';
 import { Room } from 'src/room/entities/room.entity';
 
+type Chat = {
+  senderId: string;
+  senderName: string;
+  message: string;
+};
+
 @Injectable()
 export class SocketService {
   private logger: Logger = new Logger('SocketService');
@@ -44,8 +50,8 @@ export class SocketService {
 
   async roomChanged(roomId: number) {
     this.logger.log(`roomChanged ${roomId}`);
-    const info = await this.roomService.roomInfo(roomId);
-    await this.msgInRoom(roomId, 'roomChanged', info);
+    const metadata = await this.roomService.roomMetadata(roomId);
+    await this.msgInRoom(roomId, 'roomChanged', metadata);
   }
 
   async kick(client: Socket, userId: string) {
@@ -76,6 +82,7 @@ export class SocketService {
       senderName: user.name,
       message: text,
     } satisfies Chat;
+
 
     await this.msgInRoom(user.room.id, 'chat', chat);
     this.logger.log(`${client.id} sended ${JSON.stringify(text)}`);
