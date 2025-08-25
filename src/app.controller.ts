@@ -18,6 +18,6 @@ export class AppController {
 
   @Get()
   getHello(): string {
-    return 'Hello Laftelsync!';
+    return `Hello Ani Relayer! ${process.env.npm_package_version}`;
   }
 }
