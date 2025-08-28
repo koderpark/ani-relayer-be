@@ -23,4 +23,4 @@ laftel에서 제공하고 있는 애니메이션들을, DRM 우회 없이 서로
 
 ## Sequence Diagram - MV3 flow
 
-<img width="862" height="1460" alt="Untitled" src="https://github.com/user-attachments/assets/c2357379-01b9-495b-9bae-18960f9ab804" />
+<img width="756" height="1225" alt="Backend" src="https://github.com/user-attachments/assets/77c29063-0a01-413a-bb90-8bc0862fd059" />
