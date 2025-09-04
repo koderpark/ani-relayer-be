@@ -369,18 +369,18 @@ describe('SocketService', () => {
       });
     });
 
-    it('should throw error for invalid connection type', async () => {
+    it('should handle invalid connection type by disconnecting client', async () => {
       mockSocket.handshake.auth = {
         type: 'invalid',
         username: 'testuser',
       };
 
-      await expect(service.handleConnection(mockSocket)).rejects.toThrow(
-        'invalid_input_type',
-      );
+      await service.handleConnection(mockSocket);
+
+      expect(mockSocket.disconnect).toHaveBeenCalledWith(true);
     });
 
-    it('should throw error when room creation fails', async () => {
+    it('should handle room creation failure by disconnecting client', async () => {
       mockSocket.handshake.auth = {
         type: 'host',
         username: 'testhost',
@@ -391,9 +391,9 @@ describe('SocketService', () => {
       userService.create.mockResolvedValue({} as any);
       jest.spyOn(service, 'roomCreate').mockResolvedValue(null);
 
-      await expect(service.handleConnection(mockSocket)).rejects.toThrow(
-        'room_failed',
-      );
+      await service.handleConnection(mockSocket);
+
+      expect(mockSocket.disconnect).toHaveBeenCalledWith(true);
     });
   });
 
