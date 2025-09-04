@@ -90,36 +90,56 @@ export class SocketService {
   }
 
   async handleConnection(client: Socket) {
-    const { type, username } = client.handshake.auth;
+    try {
+      const { type, username } = client.handshake.auth;
 
-    if (!['host', 'peer'].includes(type)) throw new Error('invalid_input_type');
+      if (
+        !['host', 'peer'].includes(type) ||
+        !username ||
+        typeof username !== 'string'
+      ) {
+        throw new Error('invalid_input_type');
+      }
 
-    const user = await this.userService.create(client.id, username);
-    const room = await this.roomCreate(client);
-    if (!room) throw new Error('room_failed');
+      const user = await this.userService.create(client.id, username);
+      const room = await this.roomCreate(client);
 
-    await client.join(room.id.toString());
-    await this.roomChanged(room.id);
+      if (!room) throw new Error('room_failed');
 
-    client.emit('user', {
-      id: user.id,
-      name: user.name,
-      createdAt: user.createdAt,
-      roomId: room.id,
-      isHost: type === 'host',
-    } satisfies UserInfo);
+      await client.join(room.id.toString());
+      await this.roomChanged(room.id);
 
-    this.logger.log(`${client.id} connected`);
+      client.emit('user', {
+        id: user.id,
+        name: user.name,
+        createdAt: user.createdAt,
+        roomId: room.id,
+        isHost: type === 'host',
+      } satisfies UserInfo);
+
+      this.logger.log(`${client.id} connected successfully`);
+    } catch (error) {
+      this.logger.error(
+        `Connection failed for client ${client.id}: ${error.message}`,
+      );
+      client.disconnect(true);
+    }
   }
 
   async onDisconnection(client: Socket): Promise<void> {
-    const user = await this.userService.read(client.id, ['room', 'host']);
-    if (user.host) await this.roomService.remove(client.id);
+    try {
+      const user = await this.userService.read(client.id, ['room', 'host']);
 
-    await this.userService.remove(client.id);
-    await this.roomChanged(user.room.id);
+      if (user.host) await this.roomService.remove(client.id);
+      await this.userService.remove(client.id);
 
-    this.logger.log(`${client.id} disconnected`);
+      if (user.room) await this.roomChanged(user.room.id);
+      this.logger.log(`${client.id} disconnected`);
+    } catch (error) {
+      this.logger.error(
+        `Error during disconnection for client ${client.id}: ${error.message}`,
+      );
+    }
   }
 
   async roomCreate(client: Socket): Promise<Room | null> {

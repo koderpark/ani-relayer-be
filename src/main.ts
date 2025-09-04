@@ -40,9 +40,16 @@ async function bootstrap() {
 bootstrap();
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', reason, 'Promise:', promise);
+  console.error('Unhandled Rejection at:', reason);
+  console.error('Promise:', promise);
+
+  // Log the stack trace if available
+  if (reason instanceof Error) {
+    console.error('Stack trace:', reason.stack);
+  }
 });
 
 process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err);
+  console.error('Stack trace:', err.stack);
 });
