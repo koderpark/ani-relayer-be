@@ -1,4 +1,4 @@
-import { BadRequestException, Logger } from '@nestjs/common';
+import { Logger, UseFilters } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
