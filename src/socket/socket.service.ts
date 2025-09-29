@@ -53,7 +53,7 @@ export class SocketService {
       const targetSocket = this.server.sockets.sockets.get(userId);
       if (!targetSocket) throw new BadRequestException('User not found');
 
-      targetSocket.disconnect(true);
+      await this.disconnect(targetSocket, "방장에 의해 추방되었습니다.");
     } catch (error) {
       this.logger.error(`Failed to kick user ${userId}:`, error.message);
       throw error;
@@ -85,7 +85,7 @@ export class SocketService {
     const user = await this.userService.read(client.id, ['host']);
     if (!user.host) {
       this.logger.error(`${client.id} is not host`);
-      client.disconnect(true);
+      await this.disconnect(client, '방장만이 가능한 요청입니다.');
     }
   }
 
@@ -122,7 +122,7 @@ export class SocketService {
       this.logger.error(
         `Connection failed for client ${client.id}: ${error.message}`,
       );
-      client.disconnect(true);
+      await this.disconnect(client, error.message);
     }
   }
 
@@ -155,5 +155,10 @@ export class SocketService {
       return await this.roomService.join(client.id, roomId, password);
     }
     return null;
+  }
+
+  async disconnect(client: Socket, reason?: string) {
+    client.emit('error', reason || '서버 에러가 발생하였습니다.');
+    await client.disconnect(true);
   }
 }
