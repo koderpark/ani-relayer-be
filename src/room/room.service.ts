@@ -58,6 +58,7 @@ export class RoomService {
     });
 
     this.logger.log(`create Room ${name} by ${userId}`);
+    this.logger.log(`Room UUID: ${savedRoom.uuid}`);
     return savedRoom;
   }
 

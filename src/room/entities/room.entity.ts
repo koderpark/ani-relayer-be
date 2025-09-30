@@ -41,6 +41,9 @@ export class Room {
   @OneToOne(() => User, (user) => user.host, { nullable: true })
   @JoinColumn()
   host: User;
+
+  @Column({ type: 'uuid', generated: 'uuid' })
+  uuid: string;
 }
 
 export const mockRoom: Room = {
@@ -48,6 +51,7 @@ export const mockRoom: Room = {
   updatedAt: new Date(),
   name: 'Test Room',
   password: 1234,
+  uuid: '123e4567-e89b-12d3-a456-426614174000',
   vidTitle: null,
   vidEpisode: null,
   vidData: null,
