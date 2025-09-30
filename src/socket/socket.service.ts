@@ -93,11 +93,7 @@ export class SocketService {
     try {
       const { type, username } = client.handshake.auth;
 
-      if (
-        !['host', 'peer'].includes(type) ||
-        !username ||
-        typeof username !== 'string'
-      ) {
+      if (!['host', 'peer', 'link'].includes(type)) {
         throw new Error('invalid_input_type');
       }
 
@@ -153,6 +149,10 @@ export class SocketService {
       const roomId = Number(client.handshake.auth.roomId);
       const password = Number(client.handshake.auth.password);
       return await this.roomService.join(client.id, roomId, password);
+    }
+    if (type === 'link') {
+      const { uuid } = client.handshake.auth;
+      return await this.roomService.link(client.id, uuid);
     }
     return null;
   }
