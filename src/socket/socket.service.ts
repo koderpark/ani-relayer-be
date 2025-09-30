@@ -53,7 +53,7 @@ export class SocketService {
       const targetSocket = this.server.sockets.sockets.get(userId);
       if (!targetSocket) throw new BadRequestException('User not found');
 
-      await this.disconnect(targetSocket, "방장에 의해 추방되었습니다.");
+      await this.disconnect(targetSocket, '방장에 의해 추방되었습니다.');
     } catch (error) {
       this.logger.error(`Failed to kick user ${userId}:`, error.message);
       throw error;
@@ -160,5 +160,14 @@ export class SocketService {
   async disconnect(client: Socket, reason?: string) {
     client.emit('error', reason || '서버 에러가 발생하였습니다.');
     await client.disconnect(true);
+  }
+
+  async roomUuid(client: Socket) {
+    const user = await this.userService.read(client.id, ['room']);
+    if (!user.room) throw new BadRequestException('Room not found');
+    client.emit(
+      'room/link',
+      `https://canary.koder.page/room/${user.room.uuid}`,
+    );
   }
 }
