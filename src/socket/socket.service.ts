@@ -165,9 +165,6 @@ export class SocketService {
   async roomUuid(client: Socket) {
     const user = await this.userService.read(client.id, ['room']);
     if (!user.room) throw new BadRequestException('Room not found');
-    client.emit(
-      'room/link',
-      `https://canary.koder.page/room/${user.room.uuid}`,
-    );
+    client.emit('room/link', `https://ani.koder.page/room/${user.room.uuid}`);
   }
 }
