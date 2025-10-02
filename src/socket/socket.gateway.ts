@@ -42,7 +42,7 @@ export class SocketGateway
   @SubscribeMessage('room/link')
   async handleRoomUuid(@ConnectedSocket() client: Socket) {
     await this.socketService.chkHost(client);
-    await this.socketService.roomUuid(client);
+    return await this.socketService.roomUuid(client);
   }
 
   @SubscribeMessage('room/kick')

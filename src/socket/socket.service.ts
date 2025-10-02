@@ -162,9 +162,9 @@ export class SocketService {
     await client.disconnect(true);
   }
 
-  async roomUuid(client: Socket) {
+  async roomUuid(client: Socket): Promise<string> {
     const user = await this.userService.read(client.id, ['room']);
     if (!user.room) throw new BadRequestException('Room not found');
-    client.emit('room/link', `https://ani.koder.page/invite/${user.room.uuid}`);
+    return `https://ani.koder.page/invite/${user.room.uuid}`;
   }
 }
