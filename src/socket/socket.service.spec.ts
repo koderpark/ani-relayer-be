@@ -178,6 +178,7 @@ describe('SocketService', () => {
     it('should kick user successfully', async () => {
       const targetSocket = {
         id: 'target-123',
+        emit: jest.fn(),
         disconnect: jest.fn(),
       } as any;
 
@@ -197,6 +198,7 @@ describe('SocketService', () => {
     it('should handle kick errors gracefully', async () => {
       const targetSocket = {
         id: 'target-123',
+        emit: jest.fn(),
         disconnect: jest.fn().mockImplementation(() => {
           throw new Error('Disconnect failed');
         }),
@@ -515,6 +517,52 @@ describe('SocketService', () => {
         'socket-123',
         'Test Room',
         0,
+      );
+    });
+  });
+
+  describe('disconnect', () => {
+    it('should emit default error and disconnect', async () => {
+      await service.disconnect(mockSocket);
+
+      expect(mockSocket.emit).toHaveBeenCalledWith(
+        'error',
+        '서버 에러가 발생하였습니다.',
+      );
+      expect(mockSocket.disconnect).toHaveBeenCalledWith(true);
+    });
+
+    it('should emit custom reason and disconnect', async () => {
+      await service.disconnect(mockSocket, 'custom_reason');
+
+      expect(mockSocket.emit).toHaveBeenCalledWith('error', 'custom_reason');
+      expect(mockSocket.disconnect).toHaveBeenCalledWith(true);
+    });
+  });
+
+  describe('roomUuid', () => {
+    it('should return invite link when user has a room', async () => {
+      userService.read.mockResolvedValue({
+        id: 'socket-123',
+        name: 'testuser',
+        room: { id: 1, uuid: 'abc-123' },
+      } as any);
+
+      const link = await service.roomUuid(mockSocket);
+
+      expect(userService.read).toHaveBeenCalledWith('socket-123', ['room']);
+      expect(link).toBe('https://ani.koder.page/invite/abc-123');
+    });
+
+    it('should throw BadRequestException when user has no room', async () => {
+      userService.read.mockResolvedValue({
+        id: 'socket-123',
+        name: 'testuser',
+        room: null,
+      } as any);
+
+      await expect(service.roomUuid(mockSocket)).rejects.toThrow(
+        BadRequestException,
       );
     });
   });

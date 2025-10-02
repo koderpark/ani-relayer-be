@@ -39,6 +39,12 @@ export class SocketGateway
     this.socketService.chat(client, text);
   }
 
+  @SubscribeMessage('room/link')
+  async handleRoomUuid(@ConnectedSocket() client: Socket) {
+    await this.socketService.chkHost(client);
+    return await this.socketService.roomUuid(client);
+  }
+
   @SubscribeMessage('room/kick')
   async handleRoomKick(
     @MessageBody() data: { userId: string },

@@ -58,6 +58,7 @@ export class RoomService {
     });
 
     this.logger.log(`create Room ${name} by ${userId}`);
+    this.logger.log(`Room UUID: ${savedRoom.uuid}`);
     return savedRoom;
   }
 
@@ -74,9 +75,28 @@ export class RoomService {
     return room;
   }
 
+  async link(userId: string, uuid: string): Promise<Room> {
+    const user = await this.userService.read(userId, ['room', 'host']);
+    if (user.host) throw new BadRequestException('already_host');
+
+    const room = await this.readByUuid(uuid, ['users']);
+    await this.userService.update(userId, { room });
+    return room;
+  }
+
   async read(id: number, relations: string[] = []): Promise<Room> {
     const room = await this.roomRepository.findOne({
       where: { id },
+      relations,
+    });
+
+    if (!room) throw new NotFoundException();
+    return room;
+  }
+
+  async readByUuid(uuid: string, relations: string[] = []): Promise<Room> {
+    const room = await this.roomRepository.findOne({
+      where: { uuid },
       relations,
     });
 
