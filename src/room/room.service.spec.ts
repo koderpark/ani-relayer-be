@@ -182,6 +182,63 @@ describe('RoomService', () => {
     });
   });
 
+  describe('link', () => {
+    it('should throw BadRequestException if user is already a host', async () => {
+      userService.read.mockResolvedValue({ ...mockUser, host: mockRoom });
+      jest.spyOn(service, 'readByUuid').mockResolvedValue(mockRoom);
+
+      await expect(service.link('socket-123', 'uuid-1')).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(userService.read).toHaveBeenCalledWith('socket-123', [
+        'room',
+        'host',
+      ]);
+    });
+
+    it('should link to room successfully', async () => {
+      userService.read.mockResolvedValue({ ...mockUser, host: null });
+      jest.spyOn(service, 'readByUuid').mockResolvedValue(mockRoom);
+      userService.update.mockResolvedValue(true);
+
+      const result = await service.link('socket-123', 'uuid-1');
+
+      expect(service.readByUuid).toHaveBeenCalledWith('uuid-1', ['users']);
+      expect(userService.update).toHaveBeenCalledWith('socket-123', {
+        room: mockRoom,
+      });
+      expect(result).toBe(mockRoom);
+    });
+  });
+
+  describe('readByUuid', () => {
+    it('should return room if found by uuid', async () => {
+      mockRoomRepository.findOne.mockResolvedValue(mockRoom);
+      const result = await service.readByUuid('uuid-1');
+      expect(mockRoomRepository.findOne).toHaveBeenCalledWith({
+        where: { uuid: 'uuid-1' },
+        relations: [],
+      });
+      expect(result).toBe(mockRoom);
+    });
+
+    it('should throw NotFoundException if not found by uuid', async () => {
+      mockRoomRepository.findOne.mockResolvedValue(undefined);
+      await expect(service.readByUuid('missing')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should pass relations to findOne', async () => {
+      mockRoomRepository.findOne.mockResolvedValue(mockRoom);
+      await service.readByUuid('uuid-1', ['users']);
+      expect(mockRoomRepository.findOne).toHaveBeenCalledWith({
+        where: { uuid: 'uuid-1' },
+        relations: ['users'],
+      });
+    });
+  });
+
   describe('read', () => {
     it('should return room if found', async () => {
       mockRoomRepository.findOne.mockResolvedValue(mockRoom);
