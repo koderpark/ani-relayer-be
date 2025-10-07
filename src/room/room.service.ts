@@ -176,4 +176,11 @@ export class RoomService {
     });
     return Promise.all(rooms.map((room) => this.publicRoom(room)));
   }
+
+  async statistics(): Promise<{ roomCnt: number }> {
+    const roomCnt = await this.roomRepository.count({ withDeleted: true });
+    return {
+      roomCnt,
+    };
+  }
 }

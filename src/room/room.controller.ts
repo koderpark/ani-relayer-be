@@ -22,6 +22,11 @@ export class RoomController {
     return this.roomService.readAllPublic();
   }
 
+  @Get('stat')
+  async statistics(): Promise<{ roomCnt: number }> {
+    return this.roomService.statistics();
+  }
+
   @Get(':uuid')
   async findByUuid(@Param('uuid') uuid: string): Promise<PublicRoom> {
     const room = await this.roomService.readByUuid(uuid, ['users', 'host']);
