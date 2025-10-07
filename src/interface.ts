@@ -41,6 +41,8 @@ export interface PublicRoom {
   vidTitle: string;
   vidEpisode: string;
   isLocked: boolean;
+  vidStartedAt: Date | null;
+  vidLastUpdatedAt: Date | null;
 }
 
 export interface Chat {

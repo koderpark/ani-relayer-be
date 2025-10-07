@@ -127,7 +127,11 @@ export class RoomService {
   }
 
   async removeAll(): Promise<boolean> {
-    const res = await this.roomRepository.softDelete({});
+    const res = await this.roomRepository
+      .createQueryBuilder()
+      .softDelete()
+      .where('deletedAt IS NULL')
+      .execute();
     return res.affected ? true : false;
   }
 
@@ -167,6 +171,8 @@ export class RoomService {
       vidTitle: room.vidTitle,
       vidEpisode: room.vidEpisode,
       isLocked: password.password !== null,
+      vidStartedAt: room.vidStartedAt,
+      vidLastUpdatedAt: room.vidLastUpdatedAt,
     };
   }
 
@@ -177,10 +183,23 @@ export class RoomService {
     return Promise.all(rooms.map((room) => this.publicRoom(room)));
   }
 
-  async statistics(): Promise<{ roomCnt: number }> {
+  async statistics(): Promise<{ roomCnt: number; timeSum: number }> {
     const roomCnt = await this.roomRepository.count({ withDeleted: true });
+
+    const raw = await this.roomRepository
+      .createQueryBuilder('room')
+      .withDeleted()
+      .select(
+        'SUM(TIMESTAMPDIFF(MINUTE, room.vidStartedAt, room.vidLastUpdatedAt))',
+        'sum',
+      )
+      .where('room.vidStartedAt IS NOT NULL')
+      .getRawOne<{ sum: string }>();
+
     return {
       roomCnt,
+      timeSum: Number(raw.sum) || 0,
     };
   }
 }
+

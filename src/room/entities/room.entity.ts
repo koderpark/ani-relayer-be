@@ -18,9 +18,6 @@ export class Room {
   @PrimaryGeneratedColumn() // PK
   id: number;
 
-  @CreateDateColumn()
-  createdAt: Date;
-
   @UpdateDateColumn()
   updatedAt: Date;
 
@@ -39,6 +36,12 @@ export class Room {
   @Column({ default: null })
   vidEpisode: string;
 
+  @Column({ default: null })
+  vidStartedAt: Date | null;
+
+  @Column({ default: null })
+  vidLastUpdatedAt: Date | null;
+
   @Column({ type: 'json', default: null })
   vidData: VidData;
 
@@ -56,13 +59,14 @@ export class Room {
 export const mockRoom: Room = {
   id: 1,
   updatedAt: new Date(),
-  createdAt: new Date(),
   deletedAt: null,
   name: 'Test Room',
   password: 1234,
   uuid: '123e4567-e89b-12d3-a456-426614174000',
   vidTitle: null,
   vidEpisode: null,
+  vidStartedAt: null,
+  vidLastUpdatedAt: null,
   vidData: null,
   users: [mockUser],
   host: mockUser,
