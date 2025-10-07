@@ -54,19 +54,18 @@ export class SocketService {
       if (!targetSocket) throw new BadRequestException('User not found');
 
       await this.disconnect(targetSocket, '방장에 의해 추방되었습니다.');
+      this.logger.log(`${client.id} kicked ${userId}`);
     } catch (error) {
       this.logger.error(`Failed to kick user ${userId}:`, error.message);
       throw error;
     }
-
-    this.logger.log(`${client.id} kicked ${userId}`);
   }
 
   async videoPropagate(client: Socket, video: Video) {
     await this.videoService.update(client, video);
     await this.msgExcludeMe(client, 'videoChanged', video);
 
-    this.logger.log(`${client.id} sended ${JSON.stringify(video)}`);
+    this.logger.debug(`${client.id} sended ${JSON.stringify(video)}`);
   }
 
   async chat(client: Socket, text: string) {
@@ -78,7 +77,7 @@ export class SocketService {
     } satisfies Chat;
 
     await this.msgInRoom(user.room.id, 'chat', chat);
-    this.logger.log(`${client.id} sended ${JSON.stringify(text)}`);
+    this.logger.debug(`${client.id} sended ${JSON.stringify(text)}`);
   }
 
   async chkHost(client: Socket) {
@@ -115,7 +114,7 @@ export class SocketService {
 
       this.logger.log(`${client.id} connected successfully`);
     } catch (error) {
-      this.logger.error(
+      this.logger.warn(
         `Connection failed for client ${client.id}: ${error.message}`,
       );
       await this.disconnect(client, error.message);
@@ -142,13 +141,21 @@ export class SocketService {
     const { type } = client.handshake.auth;
     if (type === 'host') {
       const { name } = client.handshake.auth;
-      const password = Number(client.handshake.auth.password);
-      return await this.roomService.create(client.id, name, password);
+      const password = client.handshake.auth.password;
+      return await this.roomService.create(
+        client.id,
+        name,
+        password ? Number(password) : null,
+      );
     }
     if (type === 'peer') {
       const roomId = Number(client.handshake.auth.roomId);
-      const password = Number(client.handshake.auth.password);
-      return await this.roomService.join(client.id, roomId, password);
+      const password = client.handshake.auth.password;
+      return await this.roomService.join(
+        client.id,
+        roomId,
+        password ? Number(password) : null,
+      );
     }
     if (type === 'link') {
       const { uuid } = client.handshake.auth;

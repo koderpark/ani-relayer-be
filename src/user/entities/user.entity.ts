@@ -6,6 +6,7 @@ import {
   OneToOne,
   PrimaryColumn,
   JoinColumn,
+  DeleteDateColumn,
 } from 'typeorm';
 import { Room } from '../../room/entities/room.entity';
 import { mockRoom } from '../../room/entities/room.entity';
@@ -34,6 +35,9 @@ export class User {
   })
   @JoinColumn()
   host?: Room;
+
+  @DeleteDateColumn()
+  deletedAt: Date | null;
 }
 
 export const mockUser: User = {
@@ -42,4 +46,5 @@ export const mockUser: User = {
   name: 'koderpark',
   room: mockRoom,
   host: mockRoom,
+  deletedAt: null,
 };

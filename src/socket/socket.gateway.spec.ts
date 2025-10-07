@@ -71,7 +71,7 @@ describe('SocketGateway', () => {
 
   describe('afterInit', () => {
     it('should initialize websocket server and set it in socketService', () => {
-      const loggerSpy = jest.spyOn(gateway['logger'], 'log');
+      const loggerSpy = jest.spyOn(gateway['logger'], 'debug');
 
       gateway.afterInit(mockServer);
 

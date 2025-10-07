@@ -22,10 +22,22 @@ export class VideoService {
       isPaused: video.isPaused,
     };
 
-    return await this.roomService.update(client.id, {
+    const room = await this.roomService.readMine(client.id);
+
+    const res = await this.roomService.update(client.id, {
       vidTitle: video.title,
       vidEpisode: video.episode,
       vidData: data,
+      vidLastUpdatedAt: new Date(),
     });
+
+    if (!room.vidStartedAt) {
+      const res2 = await this.roomService.update(client.id, {
+        vidStartedAt: new Date(),
+      });
+      return res && res2;
+    }
+
+    return res;
   }
 }
