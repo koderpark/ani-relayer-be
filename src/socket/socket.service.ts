@@ -142,8 +142,12 @@ export class SocketService {
     const { type } = client.handshake.auth;
     if (type === 'host') {
       const { name } = client.handshake.auth;
-      const password = Number(client.handshake.auth.password);
-      return await this.roomService.create(client.id, name, password);
+      const password = client.handshake.auth.password;
+      return await this.roomService.create(
+        client.id,
+        name,
+        password ? Number(password) : null,
+      );
     }
     if (type === 'peer') {
       const roomId = Number(client.handshake.auth.roomId);
