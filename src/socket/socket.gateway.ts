@@ -21,7 +21,7 @@ export class SocketGateway
   private logger: Logger = new Logger('websocket');
 
   afterInit(server: Server) {
-    this.logger.log('웹소켓 서버 초기화 ✅');
+    this.logger.debug('웹소켓 서버 초기화 ✅');
     this.socketService.server = server;
   }
 

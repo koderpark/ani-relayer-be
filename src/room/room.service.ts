@@ -21,7 +21,7 @@ export class RoomService {
     private roomRepository: Repository<Room>,
     private readonly userService: UserService,
   ) {
-    this.logger.log('Remove Leftover Rooms');
+    this.logger.debug('Remove Leftover Rooms');
     this.removeAll();
   }
 
@@ -37,7 +37,7 @@ export class RoomService {
     });
 
     if (!room) return false;
-    if (room.password === null && password === undefined) return true;
+    if (room.password === null && password === null) return true;
     if (password !== room.password) return false;
     return true;
   }
@@ -58,7 +58,7 @@ export class RoomService {
     });
 
     this.logger.log(`create Room ${name} by ${userId}`);
-    this.logger.log(`Room UUID: ${savedRoom.uuid}`);
+    this.logger.debug(`Room UUID: ${savedRoom.uuid}`);
     return savedRoom;
   }
 
@@ -72,6 +72,8 @@ export class RoomService {
       throw new BadRequestException('wrong_password');
 
     await this.userService.update(userId, { room });
+
+    this.logger.log(`join Room User:${userId} to Room:${roomId}`);
     return room;
   }
 
@@ -80,6 +82,8 @@ export class RoomService {
     if (user.host) throw new BadRequestException('already_host');
 
     const room = await this.readByUuid(uuid, ['users']);
+
+    this.logger.log(`make link Room:${room.id}`);
     await this.userService.update(userId, { room });
     return room;
   }
@@ -122,11 +126,13 @@ export class RoomService {
     const user = await this.userService.read(userId, ['room', 'host']);
     if (!user.host) throw new HttpException('not_host', HttpStatus.FORBIDDEN);
 
+    this.logger.log(`remove Room User:${userId} Room:${user.host.id}`);
     await this.roomRepository.softDelete(user.host.id);
     return true;
   }
 
   async removeAll(): Promise<boolean> {
+    this.logger.warn(`remove All Rooms`);
     const res = await this.roomRepository
       .createQueryBuilder()
       .softDelete()
