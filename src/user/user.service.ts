@@ -42,7 +42,7 @@ export class UserService {
   }
 
   async remove(id: string): Promise<boolean> {
-    const res = await this.userRepository.delete({ id });
+    const res = await this.userRepository.softDelete({ id });
     return res.affected ? true : false;
   }
 }

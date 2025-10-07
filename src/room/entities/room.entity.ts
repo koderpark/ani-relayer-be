@@ -7,6 +7,8 @@ import {
   OneToMany,
   OneToOne,
   JoinColumn,
+  CreateDateColumn,
+  DeleteDateColumn,
 } from 'typeorm';
 import { mockUser, User } from '../../user/entities/user.entity';
 import { VidData } from '../../interface';
@@ -16,8 +18,14 @@ export class Room {
   @PrimaryGeneratedColumn() // PK
   id: number;
 
+  @CreateDateColumn()
+  createdAt: Date;
+
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt: Date | null;
 
   @Column()
   name: string;
@@ -35,7 +43,6 @@ export class Room {
   vidData: VidData;
 
   @OneToMany(() => User, (user) => user.room, { nullable: true })
-  @JoinColumn()
   users: User[];
 
   @OneToOne(() => User, (user) => user.host, { nullable: true })
@@ -49,6 +56,8 @@ export class Room {
 export const mockRoom: Room = {
   id: 1,
   updatedAt: new Date(),
+  createdAt: new Date(),
+  deletedAt: null,
   name: 'Test Room',
   password: 1234,
   uuid: '123e4567-e89b-12d3-a456-426614174000',

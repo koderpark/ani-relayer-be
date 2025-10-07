@@ -122,12 +122,12 @@ export class RoomService {
     const user = await this.userService.read(userId, ['room', 'host']);
     if (!user.host) throw new HttpException('not_host', HttpStatus.FORBIDDEN);
 
-    await this.roomRepository.delete(user.host.id);
+    await this.roomRepository.softDelete(user.host.id);
     return true;
   }
 
   async removeAll(): Promise<boolean> {
-    const res = await this.roomRepository.delete({});
+    const res = await this.roomRepository.softDelete({});
     return res.affected ? true : false;
   }
 
