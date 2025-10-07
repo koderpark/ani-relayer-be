@@ -43,6 +43,7 @@ describe('VideoService', () => {
           provide: RoomService,
           useValue: {
             update: jest.fn(),
+            readMine: jest.fn().mockResolvedValue({ vidStartedAt: null }),
           },
         },
         {
@@ -85,7 +86,10 @@ describe('VideoService', () => {
 
       // Assert
       expect(userService.read).toHaveBeenCalledWith(mockSocket.id, ['host']);
-      expect(roomService.update).toHaveBeenCalledWith(mockSocket.id, expectedUpdateData);
+      expect(roomService.update).toHaveBeenCalledWith(
+        mockSocket.id,
+        expect.objectContaining(expectedUpdateData),
+      );
       expect(result).toBe(true);
     });
 
@@ -96,7 +100,7 @@ describe('VideoService', () => {
 
       // Act & Assert
       await expect(service.update(mockSocket, mockVideo)).rejects.toThrow(
-        new BadRequestException('not_host')
+        new BadRequestException('not_host'),
       );
 
       expect(userService.read).toHaveBeenCalledWith(mockSocket.id, ['host']);
@@ -133,7 +137,10 @@ describe('VideoService', () => {
       const result = await service.update(mockSocket, customVideo);
 
       // Assert
-      expect(roomService.update).toHaveBeenCalledWith(mockSocket.id, expectedUpdateData);
+      expect(roomService.update).toHaveBeenCalledWith(
+        mockSocket.id,
+        expect.objectContaining(expectedUpdateData),
+      );
       expect(result).toBe(true);
     });
 
@@ -155,10 +162,14 @@ describe('VideoService', () => {
       // Arrange
       const hostUser = { ...mockUser, host: { id: 1 } } as any;
       jest.spyOn(userService, 'read').mockResolvedValue(hostUser);
-      jest.spyOn(roomService, 'update').mockRejectedValue(new Error('Room update failed'));
+      jest
+        .spyOn(roomService, 'update')
+        .mockRejectedValue(new Error('Room update failed'));
 
       // Act & Assert
-      await expect(service.update(mockSocket, mockVideo)).rejects.toThrow('Room update failed');
+      await expect(service.update(mockSocket, mockVideo)).rejects.toThrow(
+        'Room update failed',
+      );
     });
 
     it('should correctly map video properties to VidData', async () => {
@@ -186,11 +197,14 @@ describe('VideoService', () => {
       await service.update(mockSocket, videoWithZeroValues);
 
       // Assert
-      expect(roomService.update).toHaveBeenCalledWith(mockSocket.id, {
-        vidTitle: videoWithZeroValues.title,
-        vidEpisode: videoWithZeroValues.episode,
-        vidData: expectedVidData,
-      });
+      expect(roomService.update).toHaveBeenCalledWith(
+        mockSocket.id,
+        expect.objectContaining({
+          vidTitle: videoWithZeroValues.title,
+          vidEpisode: videoWithZeroValues.episode,
+          vidData: expectedVidData,
+        }),
+      );
     });
 
     it('should handle video with null values', async () => {
@@ -218,11 +232,14 @@ describe('VideoService', () => {
       await service.update(mockSocket, videoWithNullValues);
 
       // Assert
-      expect(roomService.update).toHaveBeenCalledWith(mockSocket.id, {
-        vidTitle: null,
-        vidEpisode: null,
-        vidData: expectedVidData,
-      });
+      expect(roomService.update).toHaveBeenCalledWith(
+        mockSocket.id,
+        expect.objectContaining({
+          vidTitle: null,
+          vidEpisode: null,
+          vidData: expectedVidData,
+        }),
+      );
     });
 
     it('should handle video with undefined values', async () => {
@@ -250,28 +267,39 @@ describe('VideoService', () => {
       await service.update(mockSocket, videoWithUndefinedValues);
 
       // Assert
-      expect(roomService.update).toHaveBeenCalledWith(mockSocket.id, {
-        vidTitle: undefined,
-        vidEpisode: undefined,
-        vidData: expectedVidData,
-      });
+      expect(roomService.update).toHaveBeenCalledWith(
+        mockSocket.id,
+        expect.objectContaining({
+          vidTitle: undefined,
+          vidEpisode: undefined,
+          vidData: expectedVidData,
+        }),
+      );
     });
 
     it('should handle user service read failure', async () => {
       // Arrange
-      jest.spyOn(userService, 'read').mockRejectedValue(new Error('User service error'));
+      jest
+        .spyOn(userService, 'read')
+        .mockRejectedValue(new Error('User service error'));
 
       // Act & Assert
-      await expect(service.update(mockSocket, mockVideo)).rejects.toThrow('User service error');
+      await expect(service.update(mockSocket, mockVideo)).rejects.toThrow(
+        'User service error',
+      );
       expect(roomService.update).not.toHaveBeenCalled();
     });
 
     it('should handle user service read throwing NotFoundException', async () => {
       // Arrange
-      jest.spyOn(userService, 'read').mockRejectedValue(new Error('user_not_found'));
+      jest
+        .spyOn(userService, 'read')
+        .mockRejectedValue(new Error('user_not_found'));
 
       // Act & Assert
-      await expect(service.update(mockSocket, mockVideo)).rejects.toThrow('user_not_found');
+      await expect(service.update(mockSocket, mockVideo)).rejects.toThrow(
+        'user_not_found',
+      );
       expect(roomService.update).not.toHaveBeenCalled();
     });
 
@@ -300,11 +328,14 @@ describe('VideoService', () => {
       await service.update(mockSocket, videoWithSpecialChars);
 
       // Assert
-      expect(roomService.update).toHaveBeenCalledWith(mockSocket.id, {
-        vidTitle: videoWithSpecialChars.title,
-        vidEpisode: videoWithSpecialChars.episode,
-        vidData: expectedVidData,
-      });
+      expect(roomService.update).toHaveBeenCalledWith(
+        mockSocket.id,
+        expect.objectContaining({
+          vidTitle: videoWithSpecialChars.title,
+          vidEpisode: videoWithSpecialChars.episode,
+          vidData: expectedVidData,
+        }),
+      );
     });
 
     it('should handle video with very long title and episode', async () => {
@@ -334,11 +365,14 @@ describe('VideoService', () => {
       await service.update(mockSocket, videoWithLongValues);
 
       // Assert
-      expect(roomService.update).toHaveBeenCalledWith(mockSocket.id, {
-        vidTitle: longTitle,
-        vidEpisode: longEpisode,
-        vidData: expectedVidData,
-      });
+      expect(roomService.update).toHaveBeenCalledWith(
+        mockSocket.id,
+        expect.objectContaining({
+          vidTitle: longTitle,
+          vidEpisode: longEpisode,
+          vidData: expectedVidData,
+        }),
+      );
     });
 
     it('should handle video with extreme numeric values', async () => {
@@ -366,11 +400,14 @@ describe('VideoService', () => {
       await service.update(mockSocket, videoWithExtremeValues);
 
       // Assert
-      expect(roomService.update).toHaveBeenCalledWith(mockSocket.id, {
-        vidTitle: videoWithExtremeValues.title,
-        vidEpisode: videoWithExtremeValues.episode,
-        vidData: expectedVidData,
-      });
+      expect(roomService.update).toHaveBeenCalledWith(
+        mockSocket.id,
+        expect.objectContaining({
+          vidTitle: videoWithExtremeValues.title,
+          vidEpisode: videoWithExtremeValues.episode,
+          vidData: expectedVidData,
+        }),
+      );
     });
   });
 }); 

@@ -22,6 +22,8 @@ describe('RoomService', () => {
     find: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
+    softDelete: jest.fn(),
+    createQueryBuilder: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -32,7 +34,11 @@ describe('RoomService', () => {
     );
 
     // Mock removeAll to avoid constructor issues
-    mockRoomRepository.delete.mockResolvedValue({ affected: 0 });
+    mockRoomRepository.createQueryBuilder.mockReturnValue({
+      softDelete: () => ({
+        where: () => ({ execute: () => ({ affected: 0 }) }),
+      }),
+    });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -106,7 +112,7 @@ describe('RoomService', () => {
         ...mockRoom,
         password: null,
       });
-      const result = await service.chkPW(1);
+      const result = await service.chkPW(1, null);
       expect(result).toBe(true);
     });
     it('should return false if room has password but no password provided', async () => {
@@ -325,7 +331,9 @@ describe('RoomService', () => {
     it('should remove room if user is host', async () => {
       const mockHostUser = { ...mockUser, host: mockRoom };
       userService.read.mockResolvedValue(mockHostUser);
-      mockRoomRepository.delete.mockResolvedValue({ affected: 1 });
+      mockRoomRepository.softDelete = jest
+        .fn()
+        .mockResolvedValue({ affected: 1 });
 
       const result = await service.remove('socket-123');
 
@@ -333,7 +341,7 @@ describe('RoomService', () => {
         'room',
         'host',
       ]);
-      expect(mockRoomRepository.delete).toHaveBeenCalledWith(mockRoom.id);
+      expect(mockRoomRepository.softDelete).toHaveBeenCalledWith(mockRoom.id);
       expect(result).toBe(true);
     });
 
@@ -348,17 +356,34 @@ describe('RoomService', () => {
   });
 
   describe('removeAll', () => {
-    it('should remove all rooms', async () => {
-      mockRoomRepository.delete.mockResolvedValue({ affected: 5 });
+    it('should soft delete all rooms via query builder', async () => {
+      const executeMock = jest.fn().mockResolvedValue({ affected: 5 });
+      const whereMock = jest.fn().mockReturnValue({ execute: executeMock });
+      const softDeleteMock = jest.fn().mockReturnValue({ where: whereMock });
+      const createQueryBuilderMock = jest
+        .fn()
+        .mockReturnValue({ softDelete: softDeleteMock });
+
+      mockRoomRepository.createQueryBuilder = createQueryBuilderMock as any;
 
       const result = await service.removeAll();
 
-      expect(mockRoomRepository.delete).toHaveBeenCalledWith({});
+      expect(createQueryBuilderMock).toHaveBeenCalled();
+      expect(softDeleteMock).toHaveBeenCalled();
+      expect(whereMock).toHaveBeenCalledWith('deletedAt IS NULL');
+      expect(executeMock).toHaveBeenCalled();
       expect(result).toBe(true);
     });
 
-    it('should return false if no rooms to remove', async () => {
-      mockRoomRepository.delete.mockResolvedValue({ affected: 0 });
+    it('should return false if no rooms to soft delete', async () => {
+      const executeMock = jest.fn().mockResolvedValue({ affected: 0 });
+      const whereMock = jest.fn().mockReturnValue({ execute: executeMock });
+      const softDeleteMock = jest.fn().mockReturnValue({ where: whereMock });
+      const createQueryBuilderMock = jest
+        .fn()
+        .mockReturnValue({ softDelete: softDeleteMock });
+
+      mockRoomRepository.createQueryBuilder = createQueryBuilderMock as any;
 
       const result = await service.removeAll();
 
@@ -454,6 +479,8 @@ describe('RoomService', () => {
         vidTitle: 'Test Anime',
         vidEpisode: 'Episode 1',
         isLocked: true,
+        vidStartedAt: null,
+        vidLastUpdatedAt: null,
       });
     });
 
@@ -494,7 +521,9 @@ describe('RoomService', () => {
           vidTitle: null,
           vidEpisode: null,
           isLocked: false,
-        }),
+          vidStartedAt: null,
+          vidLastUpdatedAt: null,
+        } as any),
       );
 
       const result = await service.readAllPublic();

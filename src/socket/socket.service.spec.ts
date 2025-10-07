@@ -501,7 +501,7 @@ describe('SocketService', () => {
       );
     });
 
-    it('should handle empty password as 0', async () => {
+    it('should handle empty password as null', async () => {
       mockSocket.handshake.auth = {
         type: 'host',
         name: 'Test Room',
@@ -516,7 +516,7 @@ describe('SocketService', () => {
       expect(roomService.create).toHaveBeenCalledWith(
         'socket-123',
         'Test Room',
-        0,
+        null,
       );
     });
   });

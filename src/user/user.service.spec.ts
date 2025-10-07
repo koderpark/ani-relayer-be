@@ -12,13 +12,14 @@ describe('UserService', () => {
     find: jest.fn(),
     save: jest.fn(),
     delete: jest.fn(),
+    softDelete: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
   };
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UserService,
@@ -109,7 +110,7 @@ describe('UserService', () => {
       );
       expect(result).toBe(true);
     });
-    
+
     it('should return false if user does not exist', async () => {
       mockUserRepository.findOne.mockResolvedValue(null);
 
@@ -127,15 +128,15 @@ describe('UserService', () => {
 
   describe('remove', () => {
     it('should return true if delete affected rows', async () => {
-      mockUserRepository.delete.mockResolvedValue({ affected: 1 });
+      mockUserRepository.softDelete.mockResolvedValue({ affected: 1 });
       const result = await service.remove('socket-123');
-      expect(mockUserRepository.delete).toHaveBeenCalledWith({
+      expect(mockUserRepository.softDelete).toHaveBeenCalledWith({
         id: 'socket-123',
       });
       expect(result).toBe(true);
     });
     it('should return false if delete affected 0 rows', async () => {
-      mockUserRepository.delete.mockResolvedValue({ affected: 0 });
+      mockUserRepository.softDelete.mockResolvedValue({ affected: 0 });
       const result = await service.remove('socket-123');
       expect(result).toBe(false);
     });
@@ -283,22 +284,24 @@ describe('UserService', () => {
     });
 
     it('should handle remove with empty string ID', async () => {
-      mockUserRepository.delete.mockResolvedValue({ affected: 0 });
+      mockUserRepository.softDelete.mockResolvedValue({ affected: 0 });
 
       const result = await service.remove('');
 
       expect(result).toBe(false);
-      expect(mockUserRepository.delete).toHaveBeenCalledWith({ id: '' });
+      expect(mockUserRepository.softDelete).toHaveBeenCalledWith({ id: '' });
     });
 
     it('should handle remove with very long ID', async () => {
       const longId = 'A'.repeat(1000);
-      mockUserRepository.delete.mockResolvedValue({ affected: 0 });
+      mockUserRepository.softDelete.mockResolvedValue({ affected: 0 });
 
       const result = await service.remove(longId);
 
       expect(result).toBe(false);
-      expect(mockUserRepository.delete).toHaveBeenCalledWith({ id: longId });
+      expect(mockUserRepository.softDelete).toHaveBeenCalledWith({
+        id: longId,
+      });
     });
 
     it('should handle database errors gracefully', async () => {
@@ -324,7 +327,7 @@ describe('UserService', () => {
     });
 
     it('should handle remove database errors gracefully', async () => {
-      mockUserRepository.delete.mockRejectedValue(
+      mockUserRepository.softDelete.mockRejectedValue(
         new Error('Delete operation failed'),
       );
 
