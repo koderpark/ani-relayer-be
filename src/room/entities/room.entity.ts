@@ -24,16 +24,16 @@ export class Room {
   @DeleteDateColumn()
   deletedAt: Date | null;
 
-  @Column()
+  @Column({ type: 'text' })
   name: string;
 
   @Column({ default: null, select: false })
   password?: number;
 
-  @Column({ default: null })
+  @Column({ default: null, type: 'text' })
   vidTitle: string;
 
-  @Column({ default: null })
+  @Column({ default: null, type: 'text' })
   vidEpisode: string;
 
   @Column({ default: null })
