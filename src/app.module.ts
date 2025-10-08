@@ -20,7 +20,7 @@ import { VideoModule } from './video/video.module';
       password: process.env.DBPW,
       database: process.env.DBNAME,
       entities: [User, Room],
-      synchronize: true,
+      synchronize: process.env.NODE_ENV === 'development' ? true : false,
     }),
     SocketModule,
     UserModule,
